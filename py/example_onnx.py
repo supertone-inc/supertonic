@@ -60,6 +60,13 @@ def parse_args():
         "--save-dir", type=str, default="results", help="Output directory"
     )
 
+    parser.add_argument(
+        "--from-file",
+        type=str,
+        default="py/sample.txt",
+        help="Generate from the file"
+    )
+    
     return parser.parse_args()
 
 
@@ -101,4 +108,20 @@ for n in range(n_test):
         w = wav[b, : int(text_to_speech.sample_rate * duration[b].item())]  # [T_trim]
         sf.write(os.path.join(save_dir, fname), w, text_to_speech.sample_rate)
         print(f"Saved: {save_dir}/{fname}")
+
+
+try:
+    with open(args.from_file, "r") as sample_file:
+        with timer("Generating from file"):
+            wav, duration = text_to_speech(sample_file.read(), style, total_step, speed)
+            if not os.path.exists(save_dir):
+                os.makedirs(save_dir)
+        for b in range(bsz):
+            fname = f"short_story_sample.txt.wav"
+            w = wav[b, : int(text_to_speech.sample_rate * duration[b].item())]  # [T_trim]
+            sf.write(os.path.join(save_dir, fname), w, text_to_speech.sample_rate)
+            print(f"Saved: {save_dir}/{fname}")
+except FileNotFoundError:
+    print(f"Error: File not found {args.from_file}")
+
 print("\n=== Synthesis completed successfully! ===")
