@@ -6,6 +6,7 @@ import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_onnxruntime/flutter_onnxruntime.dart';
 import 'package:logger/logger.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:path/path.dart' as p;
 
 final logger = Logger(
   printer: PrettyPrinter(methodCount: 0, errorMethodCount: 5, lineLength: 80),
@@ -17,11 +18,7 @@ class UnicodeProcessor {
   UnicodeProcessor._(this.indexer);
 
   static Future<UnicodeProcessor> load(String path) async {
-    final json = jsonDecode(
-      path.startsWith('assets/')
-          ? await rootBundle.loadString(path)
-          : File(path).readAsStringSync(),
-    );
+    final json = jsonDecode(await rootBundle.loadString(path));
 
     final indexer = json is List
         ? {
@@ -34,6 +31,13 @@ class UnicodeProcessor {
     return UnicodeProcessor._(indexer);
   }
 
+  // This function takes a list of input strings (sentences) and converts
+  // them into numeric tensors required by the ONNX TTS model.
+  // It returns a map containing 'textIds' and 'textMask'.
+  // 'textIds' is a 2D list where each row corresponds to a sentence
+  // represented as a sequence of integer IDs based on the Unicode indexer.
+  // 'textMask' is a 3D list that indicates the valid lengths of each
+  // sentence for masking purposes during model inference.
   Map<String, dynamic> call(List<String> textList) {
     final lengths = textList.map((t) => t.length).toList();
     final maxLen = lengths.reduce(math.max);
@@ -85,8 +89,8 @@ class TextToSpeech {
 
     for (final chunk in chunks) {
       final result = await _infer([chunk], style, totalStep, speed: speed);
-      final wav = _safeCast<double>(result['wav']);
-      final duration = _safeCast<double>(result['duration']);
+      final wav = List<double>.from(result['wav']);
+      final duration = List<double>.from(result['duration']);
 
       if (wavCat == null) {
         wavCat = wav;
@@ -113,19 +117,8 @@ class TextToSpeech {
     final bsz = textList.length;
     final result = textProcessor.call(textList);
 
-    final textIdsRaw = result['textIds'];
-    final textIds = textIdsRaw is List<List<int>>
-        ? textIdsRaw
-        : (textIdsRaw as List).map((row) => (row as List).cast<int>()).toList();
-
-    final textMaskRaw = result['textMask'];
-    final textMask = textMaskRaw is List<List<List<double>>>
-        ? textMaskRaw
-        : (textMaskRaw as List)
-            .map((batch) => (batch as List)
-                .map((row) => (row as List).cast<double>())
-                .toList())
-            .toList();
+    final List<List<int>> textIds = result['textIds'];
+    final List<List<List<double>>> textMask = result['textMask'];
 
     final textIdsShape = [bsz, textIds[0].length];
     final textMaskShape = [bsz, 1, textMask[0][0].length];
@@ -136,7 +129,7 @@ class TextToSpeech {
       'style_dp': style.dp,
       'text_mask': textMaskTensor,
     });
-    final durOnnx = _safeCast<double>(await dpResult.values.first.asList());
+    final durOnnx = List<double>.from(await dpResult.values.first.asList());
     final scaledDur = durOnnx.map((d) => d / speed).toList();
 
     final textEncResult = await textEncOrt.run({
@@ -146,23 +139,8 @@ class TextToSpeech {
     });
 
     final latentData = _sampleNoisyLatent(scaledDur);
-    final noisyLatentRaw = latentData['noisyLatent'];
-    var noisyLatent = noisyLatentRaw is List<List<List<double>>>
-        ? noisyLatentRaw
-        : (noisyLatentRaw as List)
-            .map((batch) => (batch as List)
-                .map((row) => (row as List).cast<double>())
-                .toList())
-            .toList();
-
-    final latentMaskRaw = latentData['latentMask'];
-    final latentMask = latentMaskRaw is List<List<List<double>>>
-        ? latentMaskRaw
-        : (latentMaskRaw as List)
-            .map((batch) => (batch as List)
-                .map((row) => (row as List).cast<double>())
-                .toList())
-            .toList();
+    final List<List<List<double>>> noisyLatent = latentData['noisyLatent'];
+    final List<List<List<double>>> latentMask = latentData['latentMask'];
 
     final latentShape = [bsz, noisyLatent[0].length, noisyLatent[0][0].length];
     final latentMaskTensor =
@@ -184,10 +162,7 @@ class TextToSpeech {
             await _scalarToTensor(List.filled(bsz, step.toDouble()), [bsz]),
       });
 
-      final denoisedRaw = await result.values.first.asList();
-      final denoised = denoisedRaw is List<double>
-          ? denoisedRaw
-          : _safeCast<double>(denoisedRaw);
+      final denoised = _safeCast<double>(await result.values.first.asList());
       var idx = 0;
       for (var b = 0; b < noisyLatent.length; b++) {
         for (var d = 0; d < noisyLatent[b].length; d++) {
@@ -200,8 +175,7 @@ class TextToSpeech {
 
     final vocoderResult = await vocoderOrt
         .run({'latent': await _toTensor(noisyLatent, latentShape)});
-    final wavRaw = await vocoderResult.values.first.asList();
-    final wav = wavRaw is List<double> ? wavRaw : _safeCast<double>(wavRaw);
+    final wav = _safeCast<double>(await vocoderResult.values.first.asList());
 
     return {'wav': wav, 'duration': scaledDur};
   }
@@ -321,73 +295,13 @@ class TextToSpeech {
   }
 }
 
-Future<TextToSpeech> loadTextToSpeech(String onnxDir,
-    {bool useGpu = false}) async {
-  if (useGpu) throw Exception('GPU mode not supported yet');
-
-  logger.i('Loading TTS models from $onnxDir');
-
-  final cfgs = await _loadCfgs(onnxDir);
-  final sessions = await _loadOnnxAll(onnxDir);
-  final textProcessor =
-      await UnicodeProcessor.load('$onnxDir/unicode_indexer.json');
-
-  logger.i('TTS models loaded successfully');
-
-  return TextToSpeech(
-    cfgs,
-    textProcessor,
-    sessions['dpOrt']!,
-    sessions['textEncOrt']!,
-    sessions['vectorEstOrt']!,
-    sessions['vocoderOrt']!,
-  );
-}
-
-Future<Style> loadVoiceStyle(List<String> paths) async {
-  final bsz = paths.length;
-
-  final firstJson = jsonDecode(
-    paths[0].startsWith('assets/')
-        ? await rootBundle.loadString(paths[0])
-        : File(paths[0]).readAsStringSync(),
-  );
-
-  final ttlDims = List<int>.from(firstJson['style_ttl']['dims']);
-  final dpDims = List<int>.from(firstJson['style_dp']['dims']);
-
-  final ttlFlat = Float32List(bsz * ttlDims[1] * ttlDims[2]);
-  final dpFlat = Float32List(bsz * dpDims[1] * dpDims[2]);
-
-  for (var i = 0; i < bsz; i++) {
-    final json = jsonDecode(
-      paths[i].startsWith('assets/')
-          ? await rootBundle.loadString(paths[i])
-          : File(paths[i]).readAsStringSync(),
-    );
-
-    final ttlData = _flattenToDouble(json['style_ttl']['data']);
-    final dpData = _flattenToDouble(json['style_dp']['data']);
-
-    ttlFlat.setRange(i * ttlDims[1] * ttlDims[2],
-        (i + 1) * ttlDims[1] * ttlDims[2], ttlData);
-    dpFlat.setRange(
-        i * dpDims[1] * dpDims[2], (i + 1) * dpDims[1] * dpDims[2], dpData);
-  }
-
-  final ttlShape = [bsz, ttlDims[1], ttlDims[2]];
-  final dpShape = [bsz, dpDims[1], dpDims[2]];
-
-  return Style(
-    await OrtValue.fromList(ttlFlat, ttlShape),
-    await OrtValue.fromList(dpFlat, dpShape),
-    ttlShape,
-    dpShape,
-  );
+List<double> _flattenToDouble(dynamic list) {
+  if (list is List) return list.expand((e) => _flattenToDouble(e)).toList();
+  return [list is num ? list.toDouble() : double.parse(list.toString())];
 }
 
 Future<Map<String, dynamic>> _loadCfgs(String onnxDir) async {
-  final path = '$onnxDir/tts.json';
+  final path = p.join(onnxDir, 'tts.json');
   final json = jsonDecode(await rootBundle.loadString(path));
   return json as Map<String, dynamic>;
 }
@@ -395,7 +309,7 @@ Future<Map<String, dynamic>> _loadCfgs(String onnxDir) async {
 Future<String> copyModelToFile(String path) async {
   final byteData = await rootBundle.load(path);
   final tempDir = await getApplicationCacheDirectory();
-  final modelPath = '${tempDir.path}/${path.split("/").last}';
+  final modelPath = p.join(tempDir.path, path.split(p.separator).last);
 
   final file = File(modelPath);
   await file.writeAsBytes(byteData.buffer.asUint8List());
@@ -412,7 +326,8 @@ Future<Map<String, OrtSession>> _loadOnnxAll(String dir) async {
   ];
 
   final sessions = await Future.wait(models.map((name) async {
-    final path = await copyModelToFile('$dir/$name.onnx');
+    final modelPath = p.join(dir, '$name.onnx');
+    final path = await copyModelToFile(modelPath);
     logger.d('Loading $name.onnx');
     return ort.createSessionFromAsset(path);
   }));
@@ -423,11 +338,6 @@ Future<Map<String, OrtSession>> _loadOnnxAll(String dir) async {
     'vectorEstOrt': sessions[2],
     'vocoderOrt': sessions[3],
   };
-}
-
-List<double> _flattenToDouble(dynamic list) {
-  if (list is List) return list.expand((e) => _flattenToDouble(e)).toList();
-  return [list is num ? list.toDouble() : double.parse(list.toString())];
 }
 
 void writeWavFile(String filename, List<double> audioData, int sampleRate) {
@@ -483,4 +393,69 @@ void writeWavFile(String filename, List<double> audioData, int sampleRate) {
   }
 
   File(filename).writeAsBytesSync(buffer.buffer.asUint8List());
+}
+
+Future<TextToSpeech> loadTextToSpeech(String onnxDir,
+    {bool useGpu = false}) async {
+  if (useGpu) throw Exception('GPU mode not supported yet');
+
+  logger.i('Loading TTS models from $onnxDir');
+
+  final cfgs = await _loadCfgs(onnxDir);
+  final sessions = await _loadOnnxAll(onnxDir);
+  final path = p.join(onnxDir, 'unicode_indexer.json');
+  final textProcessor = await UnicodeProcessor.load(path);
+
+  logger.i('TTS models loaded successfully');
+
+  return TextToSpeech(
+    cfgs,
+    textProcessor,
+    sessions['dpOrt']!,
+    sessions['textEncOrt']!,
+    sessions['vectorEstOrt']!,
+    sessions['vocoderOrt']!,
+  );
+}
+
+Future<Style> loadVoiceStyle(List<String> paths) async {
+  final bsz = paths.length;
+
+  final firstJson = jsonDecode(
+    paths[0].startsWith('assets/')
+        ? await rootBundle.loadString(paths[0])
+        : File(paths[0]).readAsStringSync(),
+  );
+
+  final ttlDims = List<int>.from(firstJson['style_ttl']['dims']);
+  final dpDims = List<int>.from(firstJson['style_dp']['dims']);
+
+  final ttlFlat = Float32List(bsz * ttlDims[1] * ttlDims[2]);
+  final dpFlat = Float32List(bsz * dpDims[1] * dpDims[2]);
+
+  for (var i = 0; i < bsz; i++) {
+    final json = jsonDecode(
+      paths[i].startsWith('assets/')
+          ? await rootBundle.loadString(paths[i])
+          : File(paths[i]).readAsStringSync(),
+    );
+
+    final ttlData = _flattenToDouble(json['style_ttl']['data']);
+    final dpData = _flattenToDouble(json['style_dp']['data']);
+
+    ttlFlat.setRange(i * ttlDims[1] * ttlDims[2],
+        (i + 1) * ttlDims[1] * ttlDims[2], ttlData);
+    dpFlat.setRange(
+        i * dpDims[1] * dpDims[2], (i + 1) * dpDims[1] * dpDims[2], dpData);
+  }
+
+  final ttlShape = [bsz, ttlDims[1], ttlDims[2]];
+  final dpShape = [bsz, dpDims[1], dpDims[2]];
+
+  return Style(
+    await OrtValue.fromList(ttlFlat, ttlShape),
+    await OrtValue.fromList(dpFlat, dpShape),
+    ttlShape,
+    dpShape,
+  );
 }
