@@ -421,11 +421,7 @@ Future<TextToSpeech> loadTextToSpeech(String onnxDir,
 Future<Style> loadVoiceStyle(List<String> paths) async {
   final bsz = paths.length;
 
-  final firstJson = jsonDecode(
-    paths[0].startsWith('assets/')
-        ? await rootBundle.loadString(paths[0])
-        : File(paths[0]).readAsStringSync(),
-  );
+  final firstJson = jsonDecode(await rootBundle.loadString(paths[0]));
 
   final ttlDims = List<int>.from(firstJson['style_ttl']['dims']);
   final dpDims = List<int>.from(firstJson['style_dp']['dims']);
@@ -434,11 +430,7 @@ Future<Style> loadVoiceStyle(List<String> paths) async {
   final dpFlat = Float32List(bsz * dpDims[1] * dpDims[2]);
 
   for (var i = 0; i < bsz; i++) {
-    final json = jsonDecode(
-      paths[i].startsWith('assets/')
-          ? await rootBundle.loadString(paths[i])
-          : File(paths[i]).readAsStringSync(),
-    );
+    final json = jsonDecode(await rootBundle.loadString(paths[i]));
 
     final ttlData = _flattenToDouble(json['style_ttl']['data']);
     final dpData = _flattenToDouble(json['style_dp']['data']);
