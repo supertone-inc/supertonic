@@ -10,12 +10,12 @@ onnx
 results
 
 # Python
-__pycache__
+__pycache__/
 *.py[cod]
 *$py.class
 *.so
 .Python
-
+*.python-version
 # Virtual environments
 .venv
 venv/

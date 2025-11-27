@@ -1,134 +1,74 @@
-# TTS ONNX Inference Examples
+# Supertonic — Lightning Fast, On-Device TTS
 
-This guide provides examples for running TTS inference using `example_onnx.py`.
+[![Demo](https://img.shields.io/badge/🤗%20Hugging%20Face-Demo-yellow)](https://huggingface.co/spaces/Supertone/supertonic#interactive-demo)
+[![Models](https://img.shields.io/badge/🤗%20Hugging%20Face-Models-blue)](https://huggingface.co/Supertone/supertonic)
 
-## 📰 Update News
+<p align="center">
+  <img src="img/Supertonic_IMG_v02_4x.webp" alt="Supertonic Banner">
+</p>
 
-**2025.11.23** - Enhanced text preprocessing with comprehensive normalization, emoji removal, symbol replacement, and punctuation handling for improved synthesis quality.
+**Supertonic** is a lightning-fast, on-device text-to-speech system designed for **extreme performance** with minimal computational overhead. Powered by ONNX Runtime, it runs entirely on your device—no cloud, no API calls, no privacy concerns.
 
-**2025.11.19** - Added `--speed` parameter to control speech synthesis speed. Adjust the speed factor to make speech faster or slower while maintaining natural quality.
+Watch Supertonic running on a **Raspberry Pi**—demonstrating on-device, real-time text-to-speech synthesis:
 
-**2025.11.19** - Added automatic text chunking for long-form inference. Long texts are split into chunks and synthesized with natural pauses.
+https://github.com/user-attachments/assets/ea66f6d6-7bc5-4308-8a88-1ce3e07400d2
 
-## Installation
+> 🎧 **Try it now**: Experience Supertonic in your browser with our [**Interactive Demo**](https://huggingface.co/spaces/Supertone/supertonic#interactive-demo), or get started with pre-trained models from [**Hugging Face Hub**](https://huggingface.co/Supertone/supertonic)
 
-This project uses [uv](https://docs.astral.sh/uv/) for fast package management.
 
-### Install uv (if not already installed)
+## Update for python version!
+- support for GPU (For Cuda GPU and All GPU with directx 12 support) added! 
+
+## How to run it 
+first 
+
 ```bash
-curl -LsSf https://astral.sh/uv/install.sh | sh
+git clone https://github.com/supertone-inc/supertonic.git
+cd supertonic
+git clone https://huggingface.co/Supertone/supertonic assets
+cd py
+uv sync 
+```
+and activate the virtual enviornment.
+
+then,
+
+### For running the model in CPU 
+
+```bash
+uv add onnxruntime
 ```
 
-### Install dependencies
+### For running in any gpu with Directx 12
+
 ```bash
-uv sync
+uv add onnxruntime-directml
 ```
 
-Or if you prefer using traditional pip with requirements.txt:
+### For running in Cuda GPU 
+
 ```bash
-pip install -r requirements.txt
+uv add onnxruntime-gpu
 ```
 
-## Basic Usage
-
-### Example 1: Default Inference
-Run inference with default settings:
-```bash
-uv run example_onnx.py
-```
-
-This will use:
-- Voice style: `assets/voice_styles/M1.json`
-- Text: "This morning, I took a walk in the park, and the sound of the birds and the breeze was so pleasant that I stopped for a long time just to listen."
-- Output directory: `results/`
-- Total steps: 5
-- Number of generations: 4
-
-### Example 2: Batch Inference
-Process multiple voice styles and texts at once:
-```bash
-uv run example_onnx.py \
-  --voice-style assets/voice_styles/M1.json assets/voice_styles/F1.json \
-  --text "The sun sets behind the mountains, painting the sky in shades of pink and orange." "The weather is beautiful and sunny outside. A gentle breeze makes the air feel fresh and pleasant." \
-  --batch
-```
-
-This will:
-- Use `--batch` flag to enable batch processing mode
-- Generate speech for 2 different voice-text pairs
-- Use male voice style (M1.json) for the first text
-- Use female voice style (F1.json) for the second text
-- Process both samples in a single batch (automatic text chunking disabled)
-
-### Example 3: High Quality Inference
-Increase denoising steps for better quality:
-```bash
-uv run example_onnx.py \
-  --total-step 10 \
-  --voice-style assets/voice_styles/M1.json \
-  --text "Increasing the number of denoising steps improves the output's fidelity and overall quality."
-```
-
-This will:
-- Use 10 denoising steps instead of the default 5
-- Produce higher quality output at the cost of slower inference
-
-### Example 4: Long-Form Inference
-For long texts, the system automatically chunks the text into manageable segments and generates a single audio file:
-```bash
-uv run example_onnx.py \
-  --voice-style assets/voice_styles/M1.json \
-  --text "Once upon a time, in a small village nestled between rolling hills, there lived a young artist named Clara. Every morning, she would wake up before dawn to capture the first light of day. The golden rays streaming through her window inspired countless paintings. Her work was known throughout the region for its vibrant colors and emotional depth. People from far and wide came to see her gallery, and many said her paintings could tell stories that words never could."
-```
-
-This will:
-- Automatically split the long text into smaller chunks (max 300 characters by default)
-- Process each chunk separately while maintaining natural speech flow
-- Insert brief silences (0.3 seconds) between chunks for natural pacing
-- Combine all chunks into a single output audio file
-
-**Note**: When using batch mode (`--batch`), automatic text chunking is disabled. Use non-batch mode for long-form text synthesis.
-
-### Example 5: Adjusting Speech Speed
-Control the speed of speech synthesis:
-```bash
-# Faster speech (speed > 1.0)
-uv run example_onnx.py \
-  --voice-style assets/voice_styles/F2.json \
-  --text "This text will be synthesized at a faster pace." \
-  --speed 1.2
-
-# Slower speech (speed < 1.0)
-uv run example_onnx.py \
-  --voice-style assets/voice_styles/M2.json \
-  --text "This text will be synthesized at a slower, more deliberate pace." \
-  --speed 0.9
-```
-
-This will:
-- Use `--speed 1.2` to generate faster speech
-- Use `--speed 0.9` to generate slower speech
-- Default speed is 1.05 if not specified
-- Recommended speed range is between 0.9 and 1.5 for natural-sounding results
-
-## Available Arguments
+### Arguments
 
 | Argument | Type | Default | Description |
-|----------|------|---------|-------------|
-| `--use-gpu` | flag | False | Use GPU for inference (with CPU fallback) |
-| `--onnx-dir` | str | `assets/onnx` | Path to ONNX model directory |
-| `--total-step` | int | 5 | Number of denoising steps (higher = better quality, slower) |
-| `--speed` | float | 1.05 | Speech speed factor (higher = faster, lower = slower) |
-| `--n-test` | int | 4 | Number of times to generate each sample |
-| `--voice-style` | str+ | `assets/voice_styles/M1.json` | Voice style file path(s) |
-| `--text` | str+ | (long default text) | Text(s) to synthesize |
-| `--save-dir` | str | `results` | Output directory |
-| `--batch` | flag | False | Enable batch mode (disables automatic text chunking) |
+|---|---|---|---|
+| `--use-gpu` | flag | `False` | Use GPU for inference (default: CPU). |
+| `--onnx-dir` | str | `assets/onnx` | Path to the directory containing the ONNX models. |
+| `--total-step`| int | `5` | Number of denoising steps. |
+| `--speed` | float | `1.05` | Speech speed. Higher is faster. |
+| `--n-test` | int | `4` | Number of times to generate speech for each text. |
+| `--batch` | flag | `False` | Enable batch processing for multiple texts and voice styles. |
+| `--voice-style` | str(list) | `assets/voice_styles/M1.json` | Path to one or more voice style JSON files. |
+| `--text` | str(list) | `"This morning, I took a walk in the park."` | One or more texts to synthesize. |
+| `--save-dir` | str | `results` | The directory where the output audio files will be saved. |
 
-## Notes
+### Example
 
-- **Batch Processing**: The number of `--voice-style` files must match the number of `--text` entries
-- **Long-Form Inference**: Without `--batch` flag, long texts are automatically chunked and combined into a single audio file with natural pauses
-- **Quality vs Speed**: Higher `--total-step` values produce better quality but take longer
-- **GPU Support**: GPU mode is not supported yet
+To synthesize a single sentence with the default voice style:
 
+```bash
+python synthesize.py --use-gpu --text "Hello, this is a test."
+```
