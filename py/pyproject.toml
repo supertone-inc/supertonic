@@ -1,20 +1,13 @@
 [project]
-name = "tts-onnx"
-version = "1.0.0"
-description = "TTS ONNX Inference"
-requires-python = ">=3.10"
+name = "py"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
 dependencies = [
-    "onnxruntime==1.23.1",
-    "numpy>=1.26.0",
-    "soundfile>=0.12.1",
-    "librosa>=0.10.0",
-    "PyYAML>=6.0",
+    "librosa>=0.11.0",
+    "numpy>=2.3.5",
+    "pyyaml>=6.0.3",
+    "soundfile>=0.13.1",
+    "torch>=2.9.1",
 ]
-
-[tool.setuptools]
-py-modules = []
-
-[build-system]
-requires = ["setuptools"]
-build-backend = "setuptools.build_meta"
-
