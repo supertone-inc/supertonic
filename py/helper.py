@@ -237,6 +237,39 @@ class TextToSpeech:
                 dur_cat += dur_onnx + silence_duration
         return wav_cat, dur_cat
 
+    def stream(
+        self,
+        text: str,
+        style: Style,
+        total_step: int,
+        speed: float = 1.05,
+        silence_duration: float = 0.3,
+    ):
+        """
+        Generator that yields audio chunks as they are synthesized.
+        
+        Yields:
+            wav (np.ndarray): Audio chunk for a segment.
+            duration (float): Duration of the chunk in seconds.
+        """
+        assert (
+            style.ttl.shape[0] == 1
+        ), "Single speaker text to speech only supports single style"
+        
+        text_list = chunk_text(text)
+        silence = np.zeros(
+            (1, int(silence_duration * self.sample_rate)), dtype=np.float32
+        )
+        
+        for i, text_chunk in enumerate(text_list):
+            wav, dur_onnx = self._infer([text_chunk], style, total_step, speed)
+            yield wav, dur_onnx
+            
+            # Add silence between chunks (except possibly after the last one, 
+            # but original code added it between concatenations)
+            if i < len(text_list) - 1:
+                yield silence, silence_duration
+
     def batch(
         self, text_list: list[str], style: Style, total_step: int, speed: float = 1.05
     ) -> tuple[np.ndarray, np.ndarray]:
@@ -314,7 +347,8 @@ def load_text_to_speech(onnx_dir: str, use_gpu: bool = False) -> TextToSpeech:
         raise NotImplementedError("GPU mode is not fully tested")
     else:
         providers = ["CPUExecutionProvider"]
-        print("Using CPU for inference")
+        import sys
+        print("Using CPU for inference", file=sys.stderr)
     cfgs = load_cfgs(onnx_dir)
     dp_ort, text_enc_ort, vector_est_ort, vocoder_ort = load_onnx_all(
         onnx_dir, opts, providers
@@ -352,16 +386,18 @@ def load_voice_style(voice_style_paths: list[str], verbose: bool = False) -> Sty
         dp_style[i] = dp_data.reshape(dp_dims[1], dp_dims[2])
 
     if verbose:
-        print(f"Loaded {bsz} voice styles")
+        import sys
+        print(f"Loaded {bsz} voice styles", file=sys.stderr)
     return Style(ttl_style, dp_style)
 
 
 @contextmanager
 def timer(name: str):
+    import sys
     start = time.time()
-    print(f"{name}...")
+    print(f"{name}...", file=sys.stderr)
     yield
-    print(f"  -> {name} completed in {time.time() - start:.2f} sec")
+    print(f"  -> {name} completed in {time.time() - start:.2f} sec", file=sys.stderr)
 
 
 def sanitize_filename(text: str, max_len: int) -> str:
