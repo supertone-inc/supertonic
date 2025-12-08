@@ -4,6 +4,8 @@ This guide provides examples for running TTS inference using `example_onnx.py`.
 
 ## 📰 Update News
 
+**2025.11.30** - Added **MCP Server** support for LLM integration and an interactive **Streaming Audio Player** (`player.py`) with Jukebox mode and media key support.
+
 **2025.11.23** - Enhanced text preprocessing with comprehensive normalization, emoji removal, symbol replacement, and punctuation handling for improved synthesis quality.
 
 **2025.11.19** - Added `--speed` parameter to control speech synthesis speed. Adjust the speed factor to make speech faster or slower while maintaining natural quality.
@@ -28,6 +30,73 @@ Or if you prefer using traditional pip with requirements.txt:
 ```bash
 pip install -r requirements.txt
 ```
+
+## MCP Server & Streaming Player (New!)
+
+This project now includes a Model Context Protocol (MCP) server to allow LLMs (like Claude Desktop or Cursor) to synthesize speech locally, and a companion player script for streaming playback.
+
+### 1. Running the MCP Server
+
+To expose the TTS engine to your LLM editor:
+
+1.  Add the following configuration to your MCP settings (e.g., `cursor_settings.json` or `claude_desktop_config.json`):
+
+    **Windows**:
+    ```json
+    {
+      "mcpServers": {
+        "supertonic-tts": {
+          "command": "uv",
+          "args": [
+            "run",
+            "python",
+            "mcp_server.py"
+          ],
+          "cwd": "/path/to/supertonic/py"
+        }
+      }
+    }
+    ```
+
+    **macOS/Linux**:
+    ```json
+    {
+      "mcpServers": {
+        "supertonic-tts": {
+          "command": "uv",
+          "args": [
+            "run",
+            "python",
+            "mcp_server.py"
+          ],
+          "cwd": "/path/to/supertonic/py"
+        }
+      }
+    }
+    ```
+
+2.  Restart your editor. The tool `speak` will now be available.
+
+### 2. Interactive Player (`player.py`)
+
+The player script supports **streaming playback** (playing audio as it is generated) and **Jukebox mode** (automatically switching to new files).
+
+**Run the player:**
+```bash
+uv run python player.py
+```
+
+**Controls:**
+-   **Ctrl + Right Arrow**:
+    -   Short Press: Seek forward +2 seconds.
+    -   Long Press (>1s): Fast Forward (Speed increases logarithmically).
+-   **Ctrl + Left Arrow**:
+    -   Short Press: Seek backward -2 seconds.
+    -   Long Press (>1s): Fast Forward.
+
+**Features:**
+-   **Streaming**: If you start the player while the MCP server is generating audio, it will play the chunks in real-time.
+-   **Jukebox Mode**: Leave the player running. Whenever a new audio file is generated in `results/`, the player will automatically detect it and switch to playing the new track.
 
 ## Basic Usage
 
@@ -131,4 +200,3 @@ This will:
 - **Long-Form Inference**: Without `--batch` flag, long texts are automatically chunked and combined into a single audio file with natural pauses
 - **Quality vs Speed**: Higher `--total-step` values produce better quality but take longer
 - **GPU Support**: GPU mode is not supported yet
-
