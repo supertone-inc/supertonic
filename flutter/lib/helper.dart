@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'dart:convert';
 import 'dart:math' as math;
-import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_onnxruntime/flutter_onnxruntime.dart';
 import 'package:logger/logger.dart';
@@ -171,8 +171,11 @@ class TextToSpeech {
     final totalStepTensor =
         await _scalarToTensor(List.filled(bsz, totalStep.toDouble()), [bsz]);
 
-    // Denoising loop
+    // Denoising loop - yield to UI between steps to prevent jank
     for (var step = 0; step < totalStep; step++) {
+      // Yield to allow UI to process events between heavy inference steps
+      await Future.delayed(Duration.zero);
+
       final result = await vectorEstOrt.run({
         'noisy_latent': await _toTensor(noisyLatent, latentShape),
         'text_emb': textEncResult.values.first,
@@ -392,14 +395,51 @@ Future<Map<String, dynamic>> _loadCfgs(String onnxDir) async {
   return json as Map<String, dynamic>;
 }
 
+/// Copy model from assets to cache directory.
+/// Uses caching to avoid re-copying large model files on subsequent loads.
 Future<String> copyModelToFile(String path) async {
-  final byteData = await rootBundle.load(path);
   final tempDir = await getApplicationCacheDirectory();
   final modelPath = '${tempDir.path}/${path.split("/").last}';
-
   final file = File(modelPath);
-  await file.writeAsBytes(byteData.buffer.asUint8List());
+
+  // Load asset data
+  final byteData = await rootBundle.load(path);
+  final assetSize = byteData.lengthInBytes;
+
+  // Check if cached file exists and has the same size (simple cache validation)
+  if (file.existsSync()) {
+    final cachedSize = await file.length();
+    if (cachedSize == assetSize) {
+      logger.d('Using cached model: ${path.split("/").last}');
+      return modelPath;
+    }
+  }
+
+  // Copy model to cache using isolate for large files to avoid blocking UI
+  logger.d(
+      'Copying model to cache: ${path.split("/").last} (${(assetSize / 1024 / 1024).toStringAsFixed(1)} MB)');
+  final bytes = byteData.buffer.asUint8List();
+
+  // Use compute for writing large files (>1MB) to avoid blocking main thread
+  if (assetSize > 1024 * 1024) {
+    await compute(_writeFileInIsolate, _WriteFileParams(modelPath, bytes));
+  } else {
+    await file.writeAsBytes(bytes);
+  }
+
   return modelPath;
+}
+
+/// Parameters for isolate file writing
+class _WriteFileParams {
+  final String path;
+  final Uint8List bytes;
+  _WriteFileParams(this.path, this.bytes);
+}
+
+/// Write file in isolate to avoid blocking main thread
+void _writeFileInIsolate(_WriteFileParams params) {
+  File(params.path).writeAsBytesSync(params.bytes);
 }
 
 Future<Map<String, OrtSession>> _loadOnnxAll(String dir) async {
@@ -430,7 +470,30 @@ List<double> _flattenToDouble(dynamic list) {
   return [list is num ? list.toDouble() : double.parse(list.toString())];
 }
 
+/// Write WAV file synchronously (for use in main thread or isolate)
 void writeWavFile(String filename, List<double> audioData, int sampleRate) {
+  final bytes = _createWavBytes(audioData, sampleRate);
+  File(filename).writeAsBytesSync(bytes);
+}
+
+/// Write WAV file asynchronously using isolate to avoid blocking UI
+Future<void> writeWavFileAsync(
+    String filename, List<double> audioData, int sampleRate) async {
+  final bytes = _createWavBytes(audioData, sampleRate);
+  await compute(_writeWavInIsolate, _WriteWavParams(filename, bytes));
+}
+
+class _WriteWavParams {
+  final String path;
+  final Uint8List bytes;
+  _WriteWavParams(this.path, this.bytes);
+}
+
+void _writeWavInIsolate(_WriteWavParams params) {
+  File(params.path).writeAsBytesSync(params.bytes);
+}
+
+Uint8List _createWavBytes(List<double> audioData, int sampleRate) {
   const numChannels = 1;
   const bitsPerSample = 16;
   final dataSize = audioData.length * 2;
@@ -482,5 +545,5 @@ void writeWavFile(String filename, List<double> audioData, int sampleRate) {
     buffer.setInt16(offset + i * 2, sample, Endian.little);
   }
 
-  File(filename).writeAsBytesSync(buffer.buffer.asUint8List());
+  return buffer.buffer.asUint8List();
 }
