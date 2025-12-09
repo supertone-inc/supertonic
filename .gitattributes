@@ -1,3 +1,0 @@
-assets/onnx/*.onnx filter=lfs diff=lfs merge=lfs -text
-ios/** linguist-ignore
-web/** linguist-ignore

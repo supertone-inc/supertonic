@@ -1,53 +1,9 @@
-assets/*
-assets/.git
-assets/.gitignore
-assets/.gitattributes
+# Rust build artifacts
+/target/
+Cargo.lock
 
-*.onnx
-onnx
-
-# Output files
-results
-
-# Python
-__pycache__
-*.py[cod]
-*$py.class
-*.so
-.Python
-
-# Virtual environments
-.venv
-venv/
-ENV/
-env/
-
-# Node.js
-node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-package-lock.json
-
-# Swift
-.build/
-.swiftpm/
-*.xcodeproj
-*.xcworkspace
-xcuserdata/
-DerivedData/
-
-# Distribution / packaging
-build/
-dist/
-*.egg-info/
-.eggs/
-
-# Testing
-.pytest_cache/
-.coverage
-htmlcov/
-.tox/
+# Output directory
+/results/
 
 # IDE
 .vscode/
@@ -59,3 +15,8 @@ htmlcov/
 # OS
 .DS_Store
 Thumbs.db
+
+# Debug
+*.pdb
+
+/assets/
