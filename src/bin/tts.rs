@@ -2,7 +2,6 @@ use anyhow::Result;
 use clap::Parser;
 use std::path::PathBuf;
 use std::fs;
-use std::mem;
 use tracing::{info, Level};
 use tracing_subscriber::FmtSubscriber;
 
@@ -95,8 +94,6 @@ fn main() -> Result<()> {
         }
     }
 
-    let bsz = voice_style_paths.len();
-
     // --- 2. Load TTS components --- //
     let mut text_to_speech = load_text_to_speech(&args.onnx_dir, args.use_gpu)?;
 
@@ -109,7 +106,7 @@ fn main() -> Result<()> {
     for n in 0..n_test {
         info!("Starting synthesis batch [{}/{}]", n + 1, n_test);
 
-        let (wav, duration) = if batch {
+        let (wav_outputs, _duration) = if batch {
             timer("Generating speech from text (Batch)", || {
                 Ok(text_to_speech.batch(text_list, &style, total_step, speed)?)
             })?
@@ -117,40 +114,19 @@ fn main() -> Result<()> {
             let (w, d) = timer("Generating speech from text (Single)", || {
                 Ok(text_to_speech.call(&text_list[0], &style, total_step, speed, 0.3)?)
             })?;
-            (w, vec![d])
+            (vec![w], vec![d])
         };
 
         // Save outputs
-        for i in 0..bsz {
+        for (i, wav_data) in wav_outputs.iter().enumerate() {
             let fname = format!("{}_{}.wav", sanitize_filename(&text_list[i], 20), n + 1);
-            let wav_slice = if batch {
-                let wav_len = wav.len() / bsz;
-                let actual_len = (text_to_speech.sample_rate as f32 * duration[i]) as usize;
-                let wav_start = i * wav_len;
-                let wav_end = wav_start + actual_len.min(wav_len);
-                &wav[wav_start..wav_end]
-            } else {
-                // For non-batch mode, wav is a single concatenated audio
-                let actual_len = (text_to_speech.sample_rate as f32 * duration[0]) as usize;
-                &wav[..actual_len.min(wav.len())]
-            };
-
             let output_path = PathBuf::from(save_dir).join(&fname);
-            write_wav_file(&output_path, wav_slice, text_to_speech.sample_rate)?;
+            write_wav_file(&output_path, wav_data, text_to_speech.sample_rate)?;
             info!("Saved: {}", output_path.display());
         }
     }
 
     info!("Synthesis completed successfully!");
     
-    // WORKAROUND: Prevent ONNX Runtime sessions from being dropped naturally.
-    // There is a known issue (likely a mutex deadlock or race condition) in the ONNX Runtime
-    // destruction sequence on some platforms (especially macOS) that causes a hang or crash on exit.
-    // By forgetting the struct, we skip the `Drop` implementation.
-    mem::forget(text_to_speech);
-    
-    // Use _exit to bypass all cleanup handlers (atexit) and avoid ONNX Runtime mutex issues.
-    unsafe {
-        libc::_exit(0);
-    }
+    Ok(())
 }

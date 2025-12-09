@@ -3,9 +3,10 @@ use serde_json;
 use std::fs::File;
 use std::io::BufReader;
 use std::path::Path;
-use anyhow::Result;
 use unicode_normalization::UnicodeNormalization;
 use regex::Regex;
+
+use crate::error::SupertonicError;
 
 // ============================================================================
 // Unicode Text Processor
@@ -16,10 +17,10 @@ pub struct UnicodeProcessor {
 }
 
 impl UnicodeProcessor {
-    pub fn new<P: AsRef<Path>>(unicode_indexer_json_path: P) -> Result<Self> {
-        let file = File::open(unicode_indexer_json_path)?;
+    pub fn new<P: AsRef<Path>>(unicode_indexer_json_path: P) -> Result<Self, SupertonicError> {
+        let file = File::open(unicode_indexer_json_path).map_err(SupertonicError::Io)?;
         let reader = BufReader::new(file);
-        let indexer: Vec<i64> = serde_json::from_reader(reader)?;
+        let indexer: Vec<i64> = serde_json::from_reader(reader).map_err(SupertonicError::Serialization)?;
         Ok(UnicodeProcessor { indexer })
     }
 
