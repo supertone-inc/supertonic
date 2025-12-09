@@ -1,49 +1,52 @@
-# Supertonic Architecture
+# Supertonic TTS Architecture
 
 ## Overview
 
-Supertonic is a text-to-speech (TTS) synthesis system based on a non-autoregressive architecture. It is designed for high performance on consumer hardware using ONNX Runtime.
+Supertonic is a high-performance, on-device Text-to-Speech (TTS) system implemented in Rust. It utilizes the ONNX Runtime for efficient inference of neural network models. The system is designed to be modular, separating the core inference logic from the CLI interface.
 
-The pipeline consists of four main models:
+## Components
 
-1.  **Text Encoder**: Converts input phonemes/text into a latent text embedding.
-2.  **Duration Predictor**: Predicts the duration of each phoneme (how long it should be spoken).
-3.  **Vector Estimator (Diffusion/Flow)**: A denoising model that iteratively refines a noisy latent representation into a clean acoustic representation (mel-spectrogram or similar latent feature), conditioned on the text embedding and style.
-4.  **Vocoder**: Converts the clean latent representation into a raw audio waveform.
+### 1. Library (`supertonic_tts`)
 
-## Pipeline Steps
+The core library handles the loading of models, text processing, and audio synthesis.
 
-### 1. Text Preprocessing
-*   **Input**: Raw UTF-8 text.
-*   **Normalization**: Unicode normalization (NFKD), emoji removal, symbol replacement, and punctuation fixing.
-*   **Tokenization**: Maps characters to integer IDs using a `unicode_indexer.json`.
+*   **`src/lib.rs`**: The entry point of the library, exporting public modules and functions.
+*   **`src/model.rs`**: Contains the `TextToSpeech` struct which manages the ONNX Runtime sessions (`dp_ort`, `text_enc_ort`, `vector_est_ort`, `vocoder_ort`). It handles the inference pipeline.
+*   **`src/text.rs`**: Handles text preprocessing and Unicode processing. It converts input text into token IDs suitable for the model.
+*   **`src/audio.rs`**: Provides utilities for handling audio data, such as writing WAV files.
+*   **`src/config.rs`**: Manages configuration loading for the models.
+*   **`src/utils.rs`**: General utility functions like timers and filename sanitization.
 
-### 2. Duration Prediction
-*   **Input**: Text IDs, Style Embedding (DP).
-*   **Output**: Duration values for each token (in frames).
-*   **Logic**: The system predicts how many audio frames correspond to each text token. This determines the total length of the generated speech.
+### 2. CLI (`src/bin/tts.rs`)
 
-### 3. Latent Generation (Vector Estimator)
-*   **Input**: Noisy Latent (random noise), Text Embeddings, Style Embedding (TTL), Step count.
-*   **Process**:
-    *   The system starts with Gaussian noise shaped according to the predicted duration.
-    *   It applies a multi-step denoising process (Diffusion-based).
-    *   The `total_step` parameter controls the number of iterations (default 5). Fewer steps = faster generation, More steps = potentially higher quality.
-*   **Output**: "Clean" latent features.
+The Command Line Interface (CLI) provides a user-friendly way to interact with the library. It parses command-line arguments, loads resources, and drives the synthesis process.
 
-### 4. Waveform Generation (Vocoder)
-*   **Input**: Clean latent features.
-*   **Output**: Raw audio samples (floating point).
+### 3. ONNX Models
 
-## Voice Styles
+The system relies on four ONNX models:
 
-Voice styles are defined in JSON files (e.g., `M1.json`, `F1.json`). They contain learned embeddings that condition the model to produce specific timbres and prosody.
+1.  **Duration Predictor (`duration_predictor.onnx`)**: Predicts the duration of each phoneme/token.
+2.  **Text Encoder (`text_encoder.onnx`)**: Encodes the text tokens into a latent representation.
+3.  **Vector Estimator (`vector_estimator.onnx`)**: A diffusion-based model (or similar) that iteratively refines the latent representation (denoising).
+4.  **Vocoder (`vocoder.onnx`)**: Converts the final latent representation into an audio waveform.
 
-*   **Style TTL**: Conditions the Vector Estimator (Text-to-Latent).
-*   **Style DP**: Conditions the Duration Predictor.
+### 4. Voice Styles
 
-## Technical Stack
+Voice styles are defined in JSON files (e.g., `M1.json`, `F1.json`). These files contain style embeddings (`style_ttl`, `style_dp`) that control the characteristics of the generated voice.
 
-*   **Runtime**: ONNX Runtime (`ort` crate).
-*   **Language**: Rust (with `ndarray` for tensor manipulation).
-*   **Audio**: `hound` for WAV writing.
+## Data Flow
+
+1.  **Input**: Text string and Voice Style JSON.
+2.  **Text Processing**: Text is normalized and converted to token IDs.
+3.  **Duration Prediction**: The model predicts how long each token should be spoken.
+4.  **Text Encoding**: Text tokens are encoded.
+5.  **Latent Sampling**: A noisy latent representation is initialized.
+6.  **Denoising (Vector Estimator)**: The noisy latent is iteratively refined over `total_step` steps, conditioned on the text encoding and style.
+7.  **Vocoding**: The refined latent is converted to a waveform.
+8.  **Output**: WAV audio file.
+
+## Threading and Performance
+
+*   **ONNX Runtime**: Handles parallelism for matrix operations.
+*   **Rayon** (if used): Can be used for parallel processing of batches (though currently, the CLI handles batching sequentially or with simple loops).
+*   **Memory Management**: The system currently uses `mem::forget` and `libc::_exit` to workaround known ONNX Runtime cleanup issues on some platforms.

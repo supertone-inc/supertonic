@@ -72,6 +72,19 @@ fn main() -> Result<()> {
     let save_dir = &args.save_dir;
     let batch = args.batch;
 
+    // Validate existence of ONNX directory
+    let onnx_path = PathBuf::from(&args.onnx_dir);
+    if !onnx_path.exists() || !onnx_path.is_dir() {
+        anyhow::bail!("ONNX directory not found: {}", args.onnx_dir);
+    }
+
+    // Validate existence of voice style files
+    for path in voice_style_paths {
+        if !PathBuf::from(path).exists() {
+            anyhow::bail!("Voice style file not found: {}", path);
+        }
+    }
+
     if batch {
         if voice_style_paths.len() != text_list.len() {
             anyhow::bail!(
@@ -98,11 +111,11 @@ fn main() -> Result<()> {
 
         let (wav, duration) = if batch {
             timer("Generating speech from text (Batch)", || {
-                text_to_speech.batch(text_list, &style, total_step, speed)
+                Ok(text_to_speech.batch(text_list, &style, total_step, speed)?)
             })?
         } else {
             let (w, d) = timer("Generating speech from text (Single)", || {
-                text_to_speech.call(&text_list[0], &style, total_step, speed, 0.3)
+                Ok(text_to_speech.call(&text_list[0], &style, total_step, speed, 0.3)?)
             })?;
             (w, vec![d])
         };

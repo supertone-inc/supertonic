@@ -1,99 +1,92 @@
-# Supertonic Usage Guide
+# Supertonic TTS Usage Guide
 
-## Installation
+## Prerequisites
 
-### Prerequisites
+1.  **Rust Toolchain**: Ensure you have Rust installed (via `rustup`).
+2.  **Assets**: You must download the ONNX models and voice styles.
+    ```bash
+    python3 download_assets.py
+    ```
 
-1.  **Rust Toolchain**: [Install Rust](https://rustup.rs/).
-2.  **Assets**: Run `python3 download_assets.py` to fetch models and voices.
+## CLI Usage
 
-### Building
-
-```bash
-cargo build --release
-```
-
-The binary will be available at `./target/release/tts`.
-
-## CLI Reference
+The primary way to use Supertonic is through the `tts` binary.
 
 ### Basic Synthesis
 
-Generate speech using the default voice (M1) and settings:
+Generate speech from a simple text string using the default voice style (M1).
 
 ```bash
-./target/release/tts --text "Hello world"
+cargo run --release -- --text "Hello, world! This is Supertonic."
 ```
 
-This saves the output to `results/`.
+This will save the output to the `results/` directory.
 
-### Changing Voices
+### Selecting a Voice Style
 
-Use the `--voice-style` argument to point to a JSON style file:
+You can specify a different voice style using the `--voice-style` argument.
 
 ```bash
-./target/release/tts \
-  --voice-style assets/voice_styles/F1.json \
-  --text "Hello from the female voice."
+cargo run --release -- --text "I am speaking with a different voice." --voice-style assets/voice_styles/F1.json
 ```
 
-### Adjusting Speed
+Available styles (after downloading assets):
+*   `M1.json` (Male 1)
+*   `M2.json` (Male 2)
+*   `F1.json` (Female 1)
+*   `F2.json` (Female 2)
 
-The `--speed` parameter controls the speaking rate. Higher values mean faster speech.
+### Adjusting Speed and Quality
 
-*   **Slower**: `--speed 0.8`
-*   **Faster**: `--speed 1.2`
-
-```bash
-./target/release/tts --speed 1.2 --text "I am speaking quickly."
-```
-
-### Adjusting Quality (Steps)
-
-The `--total-step` parameter controls the number of denoising steps.
-
-*   **Default**: 5 steps (Balanced)
-*   **Fast**: 2 steps (Lower quality, very fast)
-*   **High Quality**: 10-20 steps (Higher quality, slower)
+*   **Speed**: Use `--speed` to control the speaking rate. Higher is faster. Default is `1.05`.
+*   **Quality**: Use `--total-step` to control the number of denoising steps. Higher values generally result in better quality but take longer. Default is `5`.
 
 ```bash
-./target/release/tts --total-step 10 --text "High quality generation."
+cargo run --release -- --text "Slow and high quality." --speed 0.8 --total-step 10
 ```
 
 ### Batch Processing
 
-You can generate multiple files at once. The number of texts must match the number of styles provided (or use one style for all if the code supports broadcasting, though currently it requires matching counts for batch mode).
+You can generate multiple outputs at once.
 
 ```bash
-./target/release/tts --batch \
-  --voice-style assets/voice_styles/M1.json,assets/voice_styles/F1.json \
-  --text "Hello form M1.|Hello from F1."
+cargo run --release -- \
+  --batch \
+  --text "First sentence.|Second sentence." \
+  --voice-style "assets/voice_styles/M1.json,assets/voice_styles/F1.json"
 ```
 
-**Note**: In batch mode, texts are delimited by `|` by default.
+Note: In batch mode, the number of texts must match the number of voice styles provided.
 
-### Long Text Handling
+### Configuration
 
-The system automatically chunks long text into sentences/paragraphs.
+*   **ONNX Directory**: If your models are in a different location, use `--onnx-dir`.
+*   **Output Directory**: Change the output folder with `--save-dir`.
 
 ```bash
-./target/release/tts --text "This is the first sentence. This is the second sentence. The system will handle the pauses naturally."
+cargo run --release -- --text "Saving elsewhere." --save-dir my_outputs
 ```
 
-## Advanced Configuration
+## Library Usage
 
-### GPU Acceleration
+Add `supertonic-tts` to your `Cargo.toml`.
 
-To use GPU (if supported/compiled):
+```rust
+use supertonic_tts::{load_text_to_speech, load_voice_style};
 
-```bash
-./target/release/tts --use-gpu
-```
+fn main() -> anyhow::Result<()> {
+    // 1. Load the engine
+    let mut tts = load_text_to_speech("assets/onnx", false)?;
 
-*(Note: GPU support currently requires specific ONNX Runtime providers to be available)*
+    // 2. Load a style
+    let style = load_voice_style(&["assets/voice_styles/M1.json".to_string()], false)?;
 
-### Custom Output Directory
+    // 3. Synthesize
+    let text = "Hello from the library code.";
+    let (wav, duration) = tts.call(text, &style, 5, 1.0, 0.3)?;
 
-```bash
-./target/release/tts --save-dir my_outputs --text "Test"
+    // 4. Save or process 'wav' (Vec<f32>)
+    // ...
+    Ok(())
+}
 ```

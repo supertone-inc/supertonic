@@ -3,6 +3,7 @@ pub mod audio;
 pub mod text;
 pub mod model;
 pub mod utils;
+pub mod error;
 
 pub use config::{Config, AEConfig, TTLConfig, load_cfgs};
 pub use audio::write_wav_file;

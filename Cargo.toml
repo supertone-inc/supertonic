@@ -39,6 +39,7 @@ regex = "1.10"
 libc = "0.2"
 tracing = "0.1.43"
 tracing-subscriber = "0.3.22"
+thiserror = "2.0.17"
 
 [lib]
 name = "supertonic_tts"
