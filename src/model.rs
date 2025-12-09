@@ -158,7 +158,7 @@ impl TextToSpeech {
         style: &Style,
         total_step: usize,
         speed: f32,
-    ) -> Result<(Vec<f32>, Vec<f32>), SupertonicError> {
+    ) -> Result<(Vec<Vec<f32>>, Vec<f32>), SupertonicError> {
         let bsz = text_list.len();
 
         // Process text
@@ -263,9 +263,20 @@ impl TextToSpeech {
         })?;
 
         let (_, wav_data) = vocoder_outputs["wav_tts"].try_extract_tensor::<f32>()?;
-        let wav: Vec<f32> = wav_data.to_vec();
+        let wav_flat: Vec<f32> = wav_data.to_vec();
 
-        Ok((wav, duration))
+        // Slice the flat audio array into individual samples
+        let mut wav_outputs = Vec::with_capacity(bsz);
+        let wav_len_per_sample = wav_flat.len() / bsz;
+
+        for i in 0..bsz {
+            let actual_len = (self.sample_rate as f32 * duration[i]) as usize;
+            let wav_start = i * wav_len_per_sample;
+            let wav_end = wav_start + actual_len.min(wav_len_per_sample);
+            wav_outputs.push(wav_flat[wav_start..wav_end].to_vec());
+        }
+
+        Ok((wav_outputs, duration))
     }
 
     pub fn call(
@@ -282,11 +293,11 @@ impl TextToSpeech {
         let mut dur_cat: f32 = 0.0;
 
         for (i, chunk) in chunks.iter().enumerate() {
-            let (wav, duration) = self._infer(&[chunk.clone()], style, total_step, speed)?;
+            let (wav_batch, duration) = self._infer(&[chunk.clone()], style, total_step, speed)?;
 
             let dur = duration[0];
-            let wav_len = (self.sample_rate as f32 * dur) as usize;
-            let wav_chunk = &wav[..wav_len.min(wav.len())];
+            // Wav batch has size 1 here
+            let wav_chunk = &wav_batch[0];
 
             if i == 0 {
                 wav_cat.extend_from_slice(wav_chunk);
@@ -310,7 +321,7 @@ impl TextToSpeech {
         style: &Style,
         total_step: usize,
         speed: f32,
-    ) -> Result<(Vec<f32>, Vec<f32>), SupertonicError> {
+    ) -> Result<(Vec<Vec<f32>>, Vec<f32>), SupertonicError> {
         self._infer(text_list, style, total_step, speed)
     }
 }
