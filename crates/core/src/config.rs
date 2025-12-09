@@ -31,3 +31,9 @@ pub fn load_cfgs<P: AsRef<Path>>(onnx_dir: P) -> Result<Config> {
     let cfgs: Config = serde_json::from_reader(reader)?;
     Ok(cfgs)
 }
+
+/// Load configuration from bytes
+pub fn load_cfgs_from_bytes(bytes: &[u8]) -> Result<Config> {
+    let cfgs: Config = serde_json::from_slice(bytes)?;
+    Ok(cfgs)
+}

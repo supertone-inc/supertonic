@@ -24,6 +24,11 @@ impl UnicodeProcessor {
         Ok(UnicodeProcessor { indexer })
     }
 
+    pub fn from_bytes(bytes: &[u8]) -> Result<Self, SupertonicError> {
+        let indexer: Vec<i64> = serde_json::from_slice(bytes).map_err(SupertonicError::Serialization)?;
+        Ok(UnicodeProcessor { indexer })
+    }
+
     pub fn call(&self, text_list: &[String]) -> (Vec<Vec<i64>>, Array3<f32>) {
         let processed_texts: Vec<String> = text_list
             .iter()
