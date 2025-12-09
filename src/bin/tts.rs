@@ -3,24 +3,27 @@ use clap::Parser;
 use std::path::PathBuf;
 use std::fs;
 use std::mem;
+use tracing::{info, Level};
+use tracing_subscriber::FmtSubscriber;
 
 use supertonic_tts::{
     load_text_to_speech, load_voice_style, timer, write_wav_file, sanitize_filename,
 };
 
 #[derive(Parser, Debug)]
-#[command(name = "TTS ONNX Inference")]
-#[command(about = "TTS Inference with ONNX Runtime (Rust)", long_about = None)]
+#[command(name = "Supertonic TTS")]
+#[command(version = "0.1.0")]
+#[command(about = "High-performance, on-device Text-to-Speech synthesis using ONNX Runtime.", long_about = None)]
 struct Args {
     /// Use GPU for inference (default: CPU)
     #[arg(long, default_value = "false")]
     use_gpu: bool,
 
     /// Path to ONNX model directory
-    #[arg(long, default_value = "assets/onnx")]
+    #[arg(long, default_value = "assets/onnx", help = "Directory containing the ONNX models")]
     onnx_dir: String,
 
-    /// Number of denoising steps
+    /// Number of denoising steps (Higher = better quality, slower)
     #[arg(long, default_value = "5")]
     total_step: usize,
 
@@ -28,7 +31,7 @@ struct Args {
     #[arg(long, default_value = "1.05")]
     speed: f32,
 
-    /// Number of times to generate
+    /// Number of times to generate each sample
     #[arg(long, default_value = "4")]
     n_test: usize,
 
@@ -36,7 +39,7 @@ struct Args {
     #[arg(long, value_delimiter = ',', default_values_t = vec!["assets/voice_styles/M1.json".to_string()])]
     voice_style: Vec<String>,
 
-    /// Text(s) to synthesize
+    /// Text(s) to synthesize (separated by | if using batch mode)
     #[arg(long, value_delimiter = '|', default_values_t = vec!["This morning, I took a walk in the park, and the sound of the birds and the breeze was so pleasant that I stopped for a long time just to listen.".to_string()])]
     text: Vec<String>,
 
@@ -50,7 +53,14 @@ struct Args {
 }
 
 fn main() -> Result<()> {
-    println!("=== TTS Inference with ONNX Runtime (Rust) ===\n");
+    // Initialize logging
+    let subscriber = FmtSubscriber::builder()
+        .with_max_level(Level::INFO)
+        .finish();
+    tracing::subscriber::set_global_default(subscriber)
+        .expect("setting default subscriber failed");
+
+    info!("=== Supertonic TTS Inference ===");
 
     // --- 1. Parse arguments --- //
     let args = Args::parse();
@@ -84,14 +94,14 @@ fn main() -> Result<()> {
     fs::create_dir_all(save_dir)?;
 
     for n in 0..n_test {
-        println!("\n[{}/{}] Starting synthesis...", n + 1, n_test);
+        info!("Starting synthesis batch [{}/{}]", n + 1, n_test);
 
         let (wav, duration) = if batch {
-            timer("Generating speech from text", || {
+            timer("Generating speech from text (Batch)", || {
                 text_to_speech.batch(text_list, &style, total_step, speed)
             })?
         } else {
-            let (w, d) = timer("Generating speech from text", || {
+            let (w, d) = timer("Generating speech from text (Single)", || {
                 text_to_speech.call(&text_list[0], &style, total_step, speed, 0.3)
             })?;
             (w, vec![d])
@@ -114,16 +124,19 @@ fn main() -> Result<()> {
 
             let output_path = PathBuf::from(save_dir).join(&fname);
             write_wav_file(&output_path, wav_slice, text_to_speech.sample_rate)?;
-            println!("Saved: {}", output_path.display());
+            info!("Saved: {}", output_path.display());
         }
     }
 
-    println!("\n=== Synthesis completed successfully! ===");
+    info!("Synthesis completed successfully!");
     
-    // Prevent ONNX Runtime sessions from being dropped, which causes mutex cleanup issues
+    // WORKAROUND: Prevent ONNX Runtime sessions from being dropped naturally.
+    // There is a known issue (likely a mutex deadlock or race condition) in the ONNX Runtime
+    // destruction sequence on some platforms (especially macOS) that causes a hang or crash on exit.
+    // By forgetting the struct, we skip the `Drop` implementation.
     mem::forget(text_to_speech);
     
-    // Use _exit to bypass all cleanup handlers and avoid ONNX Runtime mutex issues on macOS
+    // Use _exit to bypass all cleanup handlers (atexit) and avoid ONNX Runtime mutex issues.
     unsafe {
         libc::_exit(0);
     }

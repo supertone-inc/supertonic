@@ -13,7 +13,9 @@ FILES = [
     "onnx/unicode_indexer.json",
     "onnx/tts.json",
     "voice_styles/M1.json",
+    "voice_styles/M2.json",
     "voice_styles/F1.json",
+    "voice_styles/F2.json",
 ]
 
 def download_file(url, path):

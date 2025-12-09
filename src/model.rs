@@ -9,6 +9,7 @@ use ort::{
     session::Session,
     value::Value,
 };
+use tracing::info;
 
 use crate::config::Config;
 use crate::text::{UnicodeProcessor, chunk_text, length_to_mask};
@@ -95,7 +96,7 @@ pub fn load_voice_style(voice_style_paths: &[String], verbose: bool) -> Result<S
     let dp_style = Array3::from_shape_vec((bsz, dp_dim1, dp_dim2), dp_flat)?;
 
     if verbose {
-        println!("Loaded {} voice styles\n", bsz);
+        info!("Loaded {} voice styles", bsz);
     }
 
     Ok(Style {
@@ -350,7 +351,7 @@ pub fn load_text_to_speech(onnx_dir: &str, use_gpu: bool) -> Result<TextToSpeech
     if use_gpu {
         anyhow::bail!("GPU mode is not supported yet");
     }
-    println!("Using CPU for inference\n");
+    info!("Using CPU for inference");
 
     let cfgs = crate::config::load_cfgs(onnx_dir)?;
 

@@ -1,15 +1,16 @@
 use std::time::Instant;
 use anyhow::Result;
+use tracing::info;
 
 pub fn timer<F, T>(name: &str, f: F) -> Result<T>
 where
     F: FnOnce() -> Result<T>,
 {
     let start = Instant::now();
-    println!("{}...", name);
+    info!("Starting: {}", name);
     let result = f()?;
     let elapsed = start.elapsed().as_secs_f64();
-    println!("  -> {} completed in {:.2} sec", name, elapsed);
+    info!("Completed: {} in {:.2} sec", name, elapsed);
     Ok(result)
 }
 
