@@ -27,8 +27,8 @@ Supertonic is a high-performance, on-device TTS system. While the core inference
 
 ### Phase 1: Stabilization & "Easy Wins" (Immediate)
 - [x] **Asset Management**: Ensure all voice styles are easily downloadable.
-- [ ] **Documentation**: Create Architecture and detailed Usage guides.
-- [ ] **Logging**: Replace `println!` with `tracing` or `log` crate.
+- [x] **Documentation**: Create Architecture and detailed Usage guides.
+- [x] **Logging**: Replace `println!` with `tracing` or `log` crate.
 - [ ] **CLI Polish**: Improve help messages and argument validation.
 
 ### Phase 2: Refactoring (Short Term)
