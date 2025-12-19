@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter_sdk/helper.dart';
+import 'package:path/path.dart' as p;
 
 void main() {
   runApp(const SupertonicApp());
@@ -80,8 +81,10 @@ class _TTSPageState extends State<TTSPage> {
     });
 
     try {
-      _textToSpeech = await loadTextToSpeech('assets/onnx', useGpu: false);
-      _style = await loadVoiceStyle(['assets/voice_styles/M1.json']);
+      final onnxPath = p.join('assets', 'onnx');
+      final stylePath = p.join('assets', 'voice_styles', 'M1.json');
+      _textToSpeech = await loadTextToSpeech(onnxPath, useGpu: false);
+      _style = await loadVoiceStyle([stylePath]);
 
       setState(() {
         _isLoading = false;
@@ -130,8 +133,9 @@ class _TTSPageState extends State<TTSPage> {
       duration = result['duration'] is List<double>
           ? result['duration']
           : (result['duration'] as List).cast<double>();
-    } catch (e) {
-      logger.e('Error generating speech', error: e);
+    } catch (e, stacktrace) {
+      // print stacktrace
+      logger.e('Error generating speech', error: e, stackTrace: stacktrace);
       setState(() {
         _isGenerating = false;
         _status = 'Error generating speech: $e';
@@ -191,7 +195,7 @@ class _TTSPageState extends State<TTSPage> {
       }
 
       final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final downloadPath = '${downloadsDir.path}/speech_$timestamp.wav';
+      final downloadPath = p.join(downloadsDir.path, 'speech_$timestamp.wav');
 
       await sourceFile.copy(downloadPath);
       logger.i('File saved to $downloadPath');
