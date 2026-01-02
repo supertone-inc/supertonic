@@ -8,6 +8,11 @@ final class AudioPlayer: NSObject, AVAudioPlayerDelegate {
     func play(url: URL, onFinish: (() -> Void)? = nil) {
         self.onFinish = onFinish
         do {
+            // Configure audio session for playback
+            let audioSession = AVAudioSession.sharedInstance()
+            try audioSession.setCategory(.playback, mode: .default)
+            try audioSession.setActive(true)
+
             let data = try Data(contentsOf: url)
             let player = try AVAudioPlayer(data: data)
             player.delegate = self
