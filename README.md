@@ -6,6 +6,8 @@
 [![v1 Demo](https://img.shields.io/badge/🤗%20v1%20(old)-Demo-lightgrey)](https://huggingface.co/spaces/Supertone/supertonic#interactive-demo)
 [![v1 Models](https://img.shields.io/badge/🤗%20v1%20(old)-Models-lightgrey)](https://huggingface.co/Supertone/supertonic)
 
+English | [简体中文](README.zh-CN.md)
+
 <p align="center">
   <img src="img/Supertonic3_HeroImage.png" alt="Supertonic 3 Banner">
 </p>
