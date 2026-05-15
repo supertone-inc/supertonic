@@ -113,8 +113,14 @@ for n in range(n_test):
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
     for b in range(bsz):
-        base = args.output_prefix or sanitize_filename(text_list[b], 20)
-        fname = f"{base}_{n+1}.wav"
+        if args.output_prefix:
+            base = sanitize_filename(args.output_prefix, 50)
+            if bsz > 1:
+                fname = f"{base}_{n+1}_{b+1}.wav"
+            else:
+                fname = f"{base}_{n+1}.wav"
+        else:
+            fname = f"{sanitize_filename(text_list[b], 20)}_{n+1}.wav"
         w = wav[b, : int(text_to_speech.sample_rate * duration[b].item())]  # [T_trim]
         sf.write(os.path.join(save_dir, fname), w, text_to_speech.sample_rate)
         print(f"Saved: {save_dir}/{fname}")
