@@ -4,7 +4,7 @@ import OnnxRuntimeBindings
 
 // MARK: - Available Languages
 
-let AVAILABLE_LANGS = ["en", "ko", "ja", "ar", "bg", "cs", "da", "de", "el", "es", "et", "fi", "fr", "hi", "hr", "hu", "id", "it", "lt", "lv", "nl", "pl", "pt", "ro", "ru", "sk", "sl", "sv", "tr", "uk", "vi", "na"]
+let AVAILABLE_LANGS = ["en", "ko", "ja", "ar", "bg", "cs", "da", "de", "el", "es", "et", "fi", "fr", "hi", "hr", "hu", "id", "it", "lt", "lv", "nl", "pl", "pt", "ro", "ru", "sk", "sl", "sv", "tr", "uk", "vi"]
 
 func isValidLang(_ lang: String) -> Bool {
     return AVAILABLE_LANGS.contains(lang)
@@ -83,6 +83,237 @@ class UnicodeProcessor {
     }
 }
 
+// MARK: - Language-Specific Expression Replacements
+
+func expressionReplacements(for lang: String) -> [(String, String)] {
+    switch lang {
+
+    case "en":
+        return [
+            ("e.g.", "for example, "),
+            ("i.e.", "that is, "),
+            ("@", " at "),
+        ]
+
+    case "ko":
+        return [
+            ("@", " 골뱅이 "),
+        ]
+
+    case "ja":
+        return [
+            ("@", " アットマーク "),
+        ]
+
+    case "ar":
+        return [
+            ("@", " آت "),
+        ]
+
+    case "bg":
+        return [
+            ("напр.", "например "),
+            ("т.е.", "тоест "),
+            ("т. е.", "тоест "),
+            ("@", " кльомба "),
+        ]
+
+    case "cs":
+        return [
+            ("např.", "například "),
+            ("tj.", "to jest "),
+            ("tzn.", "to znamená "),
+            ("@", " zavináč "),
+        ]
+
+    case "da":
+        return [
+            ("f.eks.", "for eksempel "),
+            ("dvs.", "det vil sige "),
+            ("@", " snabel a "),
+        ]
+
+    case "de":
+        return [
+            ("z.B.", "zum Beispiel, "),
+            ("z. B.", "zum Beispiel, "),
+            ("d.h.", "das heißt, "),
+            ("d. h.", "das heißt, "),
+            ("@", " ät "),
+        ]
+
+    case "el":
+        return [
+            ("π.χ.", "παραδείγματος χάρη "),
+            ("δηλ.", "δηλαδή "),
+            ("@", " παπάκι "),
+        ]
+
+    case "es":
+        return [
+            ("p. ej.", "por ejemplo "),
+            ("p.ej.", "por ejemplo "),
+            ("ej.", "ejemplo "),
+            ("@", " arroba "),
+        ]
+
+    case "et":
+        return [
+            ("nt.", "näiteks "),
+            ("s.t.", "see tähendab "),
+            ("@", " ätt "),
+        ]
+
+    case "fi":
+        return [
+            ("esim.", "esimerkiksi "),
+            ("ts.", "toisin sanoen "),
+            ("@", " ät merkki "),
+        ]
+
+    case "fr":
+        return [
+            ("c.-à-d.", "c'est-à-dire "),
+            ("c.-a-d.", "c'est-à-dire "),
+            ("ex.", "par exemple "),
+            ("@", " arobase "),
+        ]
+
+    case "hi":
+        return [
+            ("@", " ऐट "),
+        ]
+
+    case "hr":
+        return [
+            ("npr.", "na primjer "),
+            ("tj.", "to jest "),
+            ("@", " et "),
+        ]
+
+    case "hu":
+        return [
+            ("pl.", "például "),
+            ("azaz", "azaz "),
+            ("@", " kukac "),
+        ]
+
+    case "id":
+        return [
+            ("mis.", "misalnya "),
+            ("yaitu", "yaitu "),
+            ("@", " at "),
+        ]
+
+    case "it":
+        return [
+            ("es.", "per esempio "),
+            ("cioè", "cioè "),
+            ("@", " chiocciola "),
+        ]
+
+    case "lt":
+        return [
+            ("pvz.", "pavyzdžiui "),
+            ("t. y.", "tai yra "),
+            ("@", " eta "),
+        ]
+
+    case "lv":
+        return [
+            ("piem.", "piemēram "),
+            ("t.i.", "tas ir "),
+            ("t. i.", "tas ir "),
+            ("@", " et "),
+        ]
+
+    case "nl":
+        return [
+            ("bijv.", "bijvoorbeeld "),
+            ("d.w.z.", "dat wil zeggen "),
+            ("@", " apenstaartje "),
+        ]
+
+    case "pl":
+        return [
+            ("np.", "na przykład "),
+            ("tj.", "to jest "),
+            ("@", " małpa "),
+        ]
+
+    case "pt":
+        return [
+            ("ex.", "por exemplo "),
+            ("isto é", "isto é "),
+            ("@", " arroba "),
+        ]
+
+    case "ro":
+        return [
+            ("de ex.", "de exemplu "),
+            ("adică", "adică "),
+            ("@", " a rond "),
+        ]
+
+    case "ru":
+        return [
+            ("напр.", "например "),
+            ("т.е.", "то есть "),
+            ("т. е.", "то есть "),
+            ("@", " собака "),
+        ]
+
+    case "sk":
+        return [
+            ("napr.", "napríklad "),
+            ("t. j.", "to jest "),
+            ("t.j.", "to jest "),
+            ("@", " zavináč "),
+        ]
+
+    case "sl":
+        return [
+            ("npr.", "na primer "),
+            ("tj.", "to je "),
+            ("@", " afna "),
+        ]
+
+    case "sv":
+        return [
+            ("t.ex.", "till exempel "),
+            ("t. ex.", "till exempel "),
+            ("dvs.", "det vill säga "),
+            ("@", " snabel a "),
+        ]
+
+    case "tr":
+        return [
+            ("örn.", "örneğin "),
+            ("yani", "yani "),
+            ("@", " et "),
+        ]
+
+    case "uk":
+        return [
+            ("напр.", "наприклад "),
+            ("тобто", "тобто "),
+            ("@", " ет "),
+        ]
+
+    case "vi":
+        return [
+            ("ví dụ", "ví dụ "),
+            ("tức là", "tức là "),
+            ("@", " a còng "),
+        ]
+
+    default:
+        return [
+            ("@", " at "),
+        ]
+    }
+}
+
 func preprocessText(_ text: String, lang: String) -> String {
     // Use NFKD (decomposed) for proper Hangul Jamo decomposition
     var text = text.decomposedStringWithCompatibilityMapping
@@ -137,15 +368,10 @@ func preprocessText(_ text: String, lang: String) -> String {
         text = text.replacingOccurrences(of: symbol, with: "")
     }
 
-    // Replace known expressions
-    let exprReplacements: [String: String] = [
-        "@": " at ",
-        "e.g.,": "for example, ",
-        "i.e.,": "that is, ",
-    ]
-
-    for (old, new) in exprReplacements {
-        text = text.replacingOccurrences(of: old, with: new)
+    // Replace known expressions (language-specific)
+    let exprReplacements = expressionReplacements(for: lang)
+    for (old, replacement) in exprReplacements {
+        text = text.replacingOccurrences(of: old, with: replacement)
     }
 
     // Fix spacing around punctuation
@@ -526,6 +752,183 @@ func timer<T>(_ name: String, _ f: () throws -> T) rethrows -> T {
     return result
 }
 
+/// Calculate and print the real-time factor (RTF).
+/// RTF = wall-clock-seconds / audio-duration-seconds.
+/// RTF < 1.0 means faster than real-time; RTF > 1.0 means slower.
+func printRealtimeFactor(_ wallClockSeconds: Double, _ audioDurationSeconds: Double) {
+    guard audioDurationSeconds > 0 else {
+        print("  -> RTF: N/A (zero audio duration)")
+        return
+    }
+    let rtf = wallClockSeconds / audioDurationSeconds
+    print(String(format: "  -> RTF: %.3f  (wall: %.2fs / audio: %.2fs)", rtf, wallClockSeconds, audioDurationSeconds))
+}
+
+/// Return the current process resident memory in MB.
+func currentResidentMemoryMB() -> Double {
+    #if os(macOS)
+    var info = task_vm_info_data_t()
+    var count = mach_msg_type_number_t(MemoryLayout<task_vm_info_data_t>.size / MemoryLayout<natural_t>.size)
+    let kr = withUnsafeMutablePointer(to: &info) { ptr -> kern_return_t in
+        ptr.withMemoryRebound(to: integer_t.self, capacity: Int(count)) { intPtr in
+            task_info(mach_task_self_, task_flavor_t(TASK_VM_INFO), intPtr, &count)
+        }
+    }
+    if kr == KERN_SUCCESS {
+        return Double(info.resident_size) / (1024.0 * 1024.0)
+    }
+    #endif
+    return 0
+}
+
+// MARK: - Thermal / Power Proxy Diagnostics
+
+struct SystemSnapshot {
+    let elapsedSeconds: Double
+    let thermalState: String
+    let thermalRank: Int
+    let lowPowerMode: Bool
+    let residentMemoryMB: Double
+    let cpuUserSeconds: Double
+    let cpuSystemSeconds: Double
+
+    var cpuTotalSeconds: Double {
+        cpuUserSeconds + cpuSystemSeconds
+    }
+}
+
+func thermalStateLabelAndRank() -> (String, Int) {
+    switch ProcessInfo.processInfo.thermalState {
+    case .nominal:
+        return ("nominal", 0)
+    case .fair:
+        return ("fair", 1)
+    case .serious:
+        return ("serious", 2)
+    case .critical:
+        return ("critical", 3)
+    @unknown default:
+        return ("unknown", -1)
+    }
+}
+
+func currentProcessCPUSeconds() -> (user: Double, system: Double) {
+    var usage = rusage()
+    guard getrusage(RUSAGE_SELF, &usage) == 0 else {
+        return (0, 0)
+    }
+    let user = Double(usage.ru_utime.tv_sec) + Double(usage.ru_utime.tv_usec) / 1_000_000.0
+    let system = Double(usage.ru_stime.tv_sec) + Double(usage.ru_stime.tv_usec) / 1_000_000.0
+    return (user, system)
+}
+
+func makeSystemSnapshot(startDate: Date) -> SystemSnapshot {
+    let thermal = thermalStateLabelAndRank()
+    let cpu = currentProcessCPUSeconds()
+    return SystemSnapshot(
+        elapsedSeconds: Date().timeIntervalSince(startDate),
+        thermalState: thermal.0,
+        thermalRank: thermal.1,
+        lowPowerMode: ProcessInfo.processInfo.isLowPowerModeEnabled,
+        residentMemoryMB: currentResidentMemoryMB(),
+        cpuUserSeconds: cpu.user,
+        cpuSystemSeconds: cpu.system
+    )
+}
+
+func percentChange(_ old: Double, _ new: Double) -> Double {
+    guard old != 0 else { return 0 }
+    return ((new - old) / old) * 100.0
+}
+
+/// Print the current process resident RAM in MB.
+func printPeakMemory() {
+    let mb = currentResidentMemoryMB()
+    if mb > 0 {
+        print(String(format: "  -> Process RAM: %.1f MB", mb))
+    } else {
+        print("  -> Process RAM: unavailable")
+    }
+}
+
+/// Print a performance summary averaging RTF and memory across all test runs.
+func printPerformanceSummary(
+    rtfValues: [Double],
+    memoryValues: [Double],
+    snapshots: [SystemSnapshot],
+    nTest: Int,
+    computeUnits: String,
+    intraOpThreads: Int32,
+    batchSize: Int = 1,
+    totalStep: Int = 8
+) {
+    guard !rtfValues.isEmpty else { return }
+
+    let rtf = stats(rtfValues)!
+    let memory = stats(memoryValues) ?? Stats(avg: 0, min: 0, max: 0)
+
+    let threadsLabel: String = intraOpThreads > 0
+        ? "\(intraOpThreads) (with spinning)"
+        : "ORT default"
+
+    let split = max(1, rtfValues.count / 2)
+    let firstHalf = Array(rtfValues.prefix(split))
+    let secondHalf = Array(rtfValues.suffix(rtfValues.count - split))
+
+    let firstAvg = firstHalf.reduce(0, +) / Double(firstHalf.count)
+    let secondAvg = secondHalf.isEmpty
+        ? firstAvg
+        : secondHalf.reduce(0, +) / Double(secondHalf.count)
+
+    let rtfDriftPct = percentChange(firstAvg, secondAvg)
+
+    let firstSnapshot = snapshots.first
+    let lastSnapshot = snapshots.last
+    let worstSnapshot = snapshots.max { $0.thermalRank < $1.thermalRank }
+
+    let cpuSummary: String
+    if let first = firstSnapshot, let last = lastSnapshot {
+        let cpuDelta = max(0, last.cpuTotalSeconds - first.cpuTotalSeconds)
+        let wallDelta = max(0.000_001, last.elapsedSeconds - first.elapsedSeconds)
+        let avgCoreEquivalent = cpuDelta / wallDelta
+        let totalCores = ProcessInfo.processInfo.activeProcessorCount
+        let pctOfAllCores = (avgCoreEquivalent / Double(totalCores)) * 100.0
+
+        cpuSummary = String(
+            format: "  CPU: avg %.2f cores (%.0f%% of %d cores)",
+            avgCoreEquivalent,
+            pctOfAllCores,
+            totalCores
+        )
+    } else {
+        cpuSummary = "  CPU: unavailable"
+    }
+
+    let thermalSummary: String
+    if let first = firstSnapshot, let last = lastSnapshot, let worst = worstSnapshot {
+        thermalSummary = String(
+            "  Thermal: \(first.thermalState) → \(last.thermalState) (worst: \(worst.thermalState))  LowPower: \(last.lowPowerMode ? "yes" : "no")"
+        )
+    } else {
+        thermalSummary = "  Thermal: unavailable"
+    }
+
+    print("\n=== Performance / Thermal Summary (\(nTest) runs) ===")
+    print("  Compute units: \(computeUnits)")
+    print("  Denoising steps: \(totalStep)")
+    print("  Batch size: \(batchSize)")
+    print("  Intra-op threads: \(threadsLabel)")
+
+    print(String(format: "  RTF: avg=%.3f  min=%.3f  max=%.3f", rtf.avg, rtf.min, rtf.max))
+    print(String(format: "  RTF first-half avg: %.3f", firstAvg))
+    print(String(format: "  RTF second-half avg: %.3f", secondAvg))
+    print(String(format: "  RTF drift under load: %+.1f%%", rtfDriftPct))
+
+    print(String(format: "  Process RAM: avg=%.1f MB  peak=%.1f MB", memory.avg, memory.max))
+    print(thermalSummary)
+    print(cpuSummary)
+    print("===================================================")
+}
 func sanitizeFilename(_ text: String, maxLen: Int) -> String {
     let truncated = text.count > maxLen ? String(text.prefix(maxLen)) : text
     return truncated.map { char in
@@ -537,11 +940,9 @@ func sanitizeFilename(_ text: String, maxLen: Int) -> String {
     }.map(String.init).joined()
 }
 
-func loadCfgs(_ onnxDir: String) throws -> Config {
-    let cfgPath = "\(onnxDir)/tts.json"
-    let data = try Data(contentsOf: URL(fileURLWithPath: cfgPath))
-    let config = try JSONDecoder().decode(Config.self, from: data)
-    return config
+func loadCfgs(_ configPath: String) throws -> Config {
+    let data = try Data(contentsOf: URL(fileURLWithPath: configPath))
+    return try JSONDecoder().decode(Config.self, from: data)
 }
 
 // MARK: - ONNX Runtime Integration
@@ -581,26 +982,19 @@ class TextToSpeech {
         // Flatten text IDs
         let textIdsFlat = textIds.flatMap { $0 }
         let textIdsShape: [NSNumber] = [NSNumber(value: bsz), NSNumber(value: textIds[0].count)]
-        let textIdsValue = try ORTValue(tensorData: NSMutableData(bytes: textIdsFlat, length: textIdsFlat.count * MemoryLayout<Int64>.size),
-                                        elementType: .int64,
-                                        shape: textIdsShape)
+        let textIdsValue = try makeInt64Tensor(textIdsFlat, shape: textIdsShape)
         
         // Flatten text mask
         let textMaskFlat = textMask.flatMap { $0.flatMap { $0 } }
         let textMaskShape: [NSNumber] = [NSNumber(value: bsz), 1, NSNumber(value: textMask[0][0].count)]
-        let textMaskValue = try ORTValue(tensorData: NSMutableData(bytes: textMaskFlat, length: textMaskFlat.count * MemoryLayout<Float>.size),
-                                         elementType: .float,
-                                         shape: textMaskShape)
+        let textMaskValue = try makeFloatTensor(textMaskFlat, shape: textMaskShape)
         
         // Predict duration
         let dpOutputs = try dpOrt.run(withInputs: ["text_ids": textIdsValue, "style_dp": style.dp, "text_mask": textMaskValue],
                                       outputNames: ["duration"],
                                       runOptions: nil)
         
-        let durationData = try dpOutputs["duration"]!.tensorData() as Data
-        var duration = durationData.withUnsafeBytes { ptr in
-            Array(ptr.bindMemory(to: Float.self))
-        }
+        var duration = try floatArray(from: dpOutputs["duration"]!)
         
         // Apply speed factor to duration
         for i in 0..<duration.count {
@@ -622,30 +1016,22 @@ class TextToSpeech {
         
         // Prepare constant arrays
         let totalStepArray = Array(repeating: Float(totalStep), count: bsz)
-        let totalStepValue = try ORTValue(tensorData: NSMutableData(bytes: totalStepArray, length: totalStepArray.count * MemoryLayout<Float>.size),
-                                          elementType: .float,
-                                          shape: [NSNumber(value: bsz)])
+        let totalStepValue = try makeFloatTensor(totalStepArray, shape: [NSNumber(value: bsz)])
         
         // Denoising loop
         for step in 0..<totalStep {
             let currentStepArray = Array(repeating: Float(step), count: bsz)
-            let currentStepValue = try ORTValue(tensorData: NSMutableData(bytes: currentStepArray, length: currentStepArray.count * MemoryLayout<Float>.size),
-                                                elementType: .float,
-                                                shape: [NSNumber(value: bsz)])
+            let currentStepValue = try makeFloatTensor(currentStepArray, shape: [NSNumber(value: bsz)])
             
             // Flatten xt
             let xtFlat = xt.flatMap { $0.flatMap { $0 } }
             let xtShape: [NSNumber] = [NSNumber(value: bsz), NSNumber(value: xt[0].count), NSNumber(value: xt[0][0].count)]
-            let xtValue = try ORTValue(tensorData: NSMutableData(bytes: xtFlat, length: xtFlat.count * MemoryLayout<Float>.size),
-                                       elementType: .float,
-                                       shape: xtShape)
+            let xtValue = try makeFloatTensor(xtFlat, shape: xtShape)
             
             // Flatten latent mask
             let latentMaskFlat = latentMask.flatMap { $0.flatMap { $0 } }
             let latentMaskShape: [NSNumber] = [NSNumber(value: bsz), 1, NSNumber(value: latentMask[0][0].count)]
-            let latentMaskValue = try ORTValue(tensorData: NSMutableData(bytes: latentMaskFlat, length: latentMaskFlat.count * MemoryLayout<Float>.size),
-                                               elementType: .float,
-                                               shape: latentMaskShape)
+            let latentMaskValue = try makeFloatTensor(latentMaskFlat, shape: latentMaskShape)
             
             let vectorEstOutputs = try vectorEstOrt.run(withInputs: [
                 "noisy_latent": xtValue,
@@ -657,10 +1043,7 @@ class TextToSpeech {
                 "total_step": totalStepValue
             ], outputNames: ["denoised_latent"], runOptions: nil)
             
-            let denoisedData = try vectorEstOutputs["denoised_latent"]!.tensorData() as Data
-            let denoisedFlat = denoisedData.withUnsafeBytes { ptr in
-                Array(ptr.bindMemory(to: Float.self))
-            }
+            let denoisedFlat = try floatArray(from: vectorEstOutputs["denoised_latent"]!)
             
             // Reshape to 3D
             let latentDimVal = xt[0].count
@@ -684,18 +1067,13 @@ class TextToSpeech {
         // Generate waveform
         let finalXtFlat = xt.flatMap { $0.flatMap { $0 } }
         let finalXtShape: [NSNumber] = [NSNumber(value: bsz), NSNumber(value: xt[0].count), NSNumber(value: xt[0][0].count)]
-        let finalXtValue = try ORTValue(tensorData: NSMutableData(bytes: finalXtFlat, length: finalXtFlat.count * MemoryLayout<Float>.size),
-                                        elementType: .float,
-                                        shape: finalXtShape)
+        let finalXtValue = try makeFloatTensor(finalXtFlat, shape: finalXtShape)
         
         let vocoderOutputs = try vocoderOrt.run(withInputs: ["latent": finalXtValue],
                                                 outputNames: ["wav_tts"],
                                                 runOptions: nil)
         
-        let wavData = try vocoderOutputs["wav_tts"]!.tensorData() as Data
-        let wav = wavData.withUnsafeBytes { ptr in
-            Array(ptr.bindMemory(to: Float.self))
-        }
+        let wav = try floatArray(from: vocoderOutputs["wav_tts"]!)
         
         return (wav, duration)
     }
@@ -764,40 +1142,15 @@ func loadVoiceStyle(_ voiceStylePaths: [String], verbose: Bool) throws -> Style 
         let data = try Data(contentsOf: URL(fileURLWithPath: path))
         let voiceStyle = try JSONDecoder().decode(VoiceStyleData.self, from: data)
         
-        // Flatten TTL data
-        let ttlOffset = i * ttlDim1 * ttlDim2
-        var idx = 0
-        for batch in voiceStyle.style_ttl.data {
-            for row in batch {
-                for val in row {
-                    ttlFlat[ttlOffset + idx] = val
-                    idx += 1
-                }
-            }
-        }
-        
-        // Flatten DP data
-        let dpOffset = i * dpDim1 * dpDim2
-        idx = 0
-        for batch in voiceStyle.style_dp.data {
-            for row in batch {
-                for val in row {
-                    dpFlat[dpOffset + idx] = val
-                    idx += 1
-                }
-            }
-        }
+        copyStyleComponent(voiceStyle.style_ttl, into: &ttlFlat, batchIndex: i, dim1: ttlDim1, dim2: ttlDim2)
+        copyStyleComponent(voiceStyle.style_dp, into: &dpFlat, batchIndex: i, dim1: dpDim1, dim2: dpDim2)
     }
     
     let ttlShape: [NSNumber] = [NSNumber(value: bsz), NSNumber(value: ttlDim1), NSNumber(value: ttlDim2)]
     let dpShape: [NSNumber] = [NSNumber(value: bsz), NSNumber(value: dpDim1), NSNumber(value: dpDim2)]
     
-    let ttlValue = try ORTValue(tensorData: NSMutableData(bytes: &ttlFlat, length: ttlFlat.count * MemoryLayout<Float>.size),
-                                elementType: .float,
-                                shape: ttlShape)
-    let dpValue = try ORTValue(tensorData: NSMutableData(bytes: &dpFlat, length: dpFlat.count * MemoryLayout<Float>.size),
-                               elementType: .float,
-                               shape: dpShape)
+    let ttlValue = try makeFloatTensor(ttlFlat, shape: ttlShape)
+    let dpValue = try makeFloatTensor(dpFlat, shape: dpShape)
     
     if verbose {
         print("Loaded \(bsz) voice styles\n")
@@ -806,30 +1159,521 @@ func loadVoiceStyle(_ voiceStylePaths: [String], verbose: Bool) throws -> Style 
     return Style(ttl: ttlValue, dp: dpValue)
 }
 
-func loadTextToSpeech(_ onnxDir: String, _ useGpu: Bool, _ env: ORTEnv) throws -> TextToSpeech {
-    if useGpu {
-        throw NSError(domain: "TTS", code: 1, userInfo: [NSLocalizedDescriptionKey: "GPU mode is not supported yet"])
+// MARK: - Power Watts via powermetrics
+
+struct PowerSample {
+    var cpuMW: Double?
+    var gpuMW: Double?
+    var aneMW: Double?
+    var combinedMW: Double?
+    var eClusterFreqMHz: Double?
+    var pClusterFreqMHz: Double?
+    var gpuFreqMHz: Double?
+
+    var totalMW: Double {
+        combinedMW ?? ((cpuMW ?? 0) + (gpuMW ?? 0) + (aneMW ?? 0))
     }
-    print("Using CPU for inference\n")
-    
-    let cfgs = try loadCfgs(onnxDir)
-    
-    let sessionOptions = try ORTSessionOptions()
-    
-    let dpPath = "\(onnxDir)/duration_predictor.onnx"
-    let textEncPath = "\(onnxDir)/text_encoder.onnx"
-    let vectorEstPath = "\(onnxDir)/vector_estimator.onnx"
-    let vocoderPath = "\(onnxDir)/vocoder.onnx"
-    
-    let dpOrt = try ORTSession(env: env, modelPath: dpPath, sessionOptions: sessionOptions)
-    let textEncOrt = try ORTSession(env: env, modelPath: textEncPath, sessionOptions: sessionOptions)
-    let vectorEstOrt = try ORTSession(env: env, modelPath: vectorEstPath, sessionOptions: sessionOptions)
-    let vocoderOrt = try ORTSession(env: env, modelPath: vocoderPath, sessionOptions: sessionOptions)
-    
-    let unicodeIndexerPath = "\(onnxDir)/unicode_indexer.json"
-    let textProcessor = try UnicodeProcessor(unicodeIndexerPath: unicodeIndexerPath)
-    
+}
+
+final class PowerMetricsMonitor {
+    private let queue = DispatchQueue(label: "tts.powermetrics.monitor")
+    private let process = Process()
+    private let pipe = Pipe()
+    private let stderrPipe = Pipe()
+
+    private var current = PowerSample()
+    private var currentHasData = false
+    private var samples = [PowerSample]()
+
+    func start() {
+        guard geteuid() == 0 else {
+            print("Power watts: unavailable; run the binary with sudo and --power-watts")
+            return
+        }
+
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/powermetrics")
+        process.arguments = [
+            "-i", "1000",
+            "-n", "0",
+            "-s", "cpu_power,gpu_power",
+            "--show-usage-summary"
+        ]
+        process.standardOutput = pipe
+        process.standardError = stderrPipe
+
+        stderrPipe.fileHandleForReading.readabilityHandler = { handle in
+            let data = handle.availableData
+            guard !data.isEmpty, let text = String(data: data, encoding: .utf8) else { return }
+            for line in text.split(separator: "\n") {
+                print("[powermetrics-stderr] \(line)")
+            }
+        }
+
+        pipe.fileHandleForReading.readabilityHandler = { [weak self] handle in
+            let data = handle.availableData
+            guard !data.isEmpty, let text = String(data: data, encoding: .utf8) else { return }
+
+            self?.queue.async {
+                self?.consume(text)
+            }
+        }
+
+        do {
+            try process.run()
+            print("Power watts: enabled via powermetrics")
+        } catch {
+            print("Power watts: failed to start powermetrics: \(error)")
+        }
+    }
+
+    func stop() -> [PowerSample] {
+        if process.isRunning {
+            process.terminate()
+            process.waitUntilExit()
+        }
+
+        // Drain any remaining buffered data before clearing the handler.
+        // The readabilityHandler is async, so data arriving after terminate()
+        // would otherwise be lost when we nil it out.
+        let remainingStdout = pipe.fileHandleForReading.readDataToEndOfFile()
+        let remainingStderr = stderrPipe.fileHandleForReading.readDataToEndOfFile()
+
+        pipe.fileHandleForReading.readabilityHandler = nil
+        stderrPipe.fileHandleForReading.readabilityHandler = nil
+
+        if let text = String(data: remainingStderr, encoding: .utf8) {
+            for line in text.split(separator: "\n") {
+                print("[powermetrics-stderr] \(line)")
+            }
+        }
+
+        if process.terminationStatus != 0 {
+            print("Power watts: powermetrics exited with status \(process.terminationStatus)")
+        }
+
+        return queue.sync {
+            // Process any remaining stdout data before committing.
+            if let text = String(data: remainingStdout, encoding: .utf8) {
+                consume(text)
+            }
+            commitCurrentIfNeeded()
+            // Debug: print first sample raw values.
+            if let first = samples.first {
+                print("[powermetrics-debug] first sample: cpu=\(first.cpuMW ?? 0) gpu=\(first.gpuMW ?? 0) ane=\(first.aneMW ?? 0) total=\(first.totalMW) mW")
+            }
+            return samples
+        }
+    }
+
+    private func consume(_ text: String) {
+        for rawLine in text.split(separator: "\n", omittingEmptySubsequences: false) {
+            parseLine(String(rawLine))
+        }
+    }
+
+    private func parseLine(_ line: String) {
+        if line.contains("Sampled system activity") {
+            commitCurrentIfNeeded()
+            current = PowerSample()
+            currentHasData = false
+            return
+        }
+
+        if let mw = parseMW(line, label: "CPU Power") {
+            current.cpuMW = mw
+            currentHasData = true
+            return
+        }
+
+        if let mw = parseMW(line, label: "Combined Power") {
+            current.combinedMW = mw
+            currentHasData = true
+            return
+        }
+
+        if let freq = parseFreqMHz(line, label: "E-Cluster HW active frequency") {
+            current.eClusterFreqMHz = freq
+            currentHasData = true
+            return
+        }
+
+        if let freq = parseFreqMHz(line, label: "P-Cluster HW active frequency") {
+            current.pClusterFreqMHz = freq
+            currentHasData = true
+            return
+        }
+    }
+
+    private func parseFreqMHz(_ line: String, label: String) -> Double? {
+        parseNumericValue(line, label: label, pattern: #":\s*([0-9]+(?:\.[0-9]+)?)\s*MHz\b"#) { value, _ in value }
+    }
+
+    private func parseMW(_ line: String, label: String) -> Double? {
+        parseNumericValue(line, label: label, pattern: #"([0-9]+(?:\.[0-9]+)?)\s*(mW|W)\b"#) { value, unit in
+            unit == "W" ? value * 1000.0 : value
+        }
+    }
+
+    private func parseNumericValue(
+        _ line: String,
+        label: String,
+        pattern: String,
+        transform: (Double, String?) -> Double
+    ) -> Double? {
+        guard line.contains(label) else { return nil }
+        guard let regex = try? NSRegularExpression(pattern: pattern) else { return nil }
+        let range = NSRange(line.startIndex..<line.endIndex, in: line)
+        guard let match = regex.firstMatch(in: line, range: range),
+              let valueRange = Range(match.range(at: 1), in: line),
+              let value = Double(line[valueRange]) else {
+            return nil
+        }
+        let unit: String? = (match.numberOfRanges > 2 && match.range(at: 2).length > 0)
+            ? String(line[Range(match.range(at: 2), in: line)!])
+            : nil
+        return transform(value, unit)
+    }
+
+    private func commitCurrentIfNeeded() {
+        if currentHasData {
+            samples.append(current)
+            current = PowerSample()
+            currentHasData = false
+        }
+    }
+}
+
+// MARK: - Statistics Helpers
+
+struct Stats {
+    let avg: Double
+    let min: Double
+    let max: Double
+}
+
+func stats(_ values: [Double]) -> Stats? {
+    guard !values.isEmpty else { return nil }
+    return Stats(
+        avg: values.reduce(0, +) / Double(values.count),
+        min: values.min()!,
+        max: values.max()!
+    )
+}
+
+func summarizePower(_ samples: [PowerSample]) -> String {
+    guard !samples.isEmpty else {
+        return "  Power watts: unavailable"
+    }
+
+    let total = samples.map { $0.totalMW / 1000.0 }
+    let totalStats = stats(total)!
+
+    let eFreqs = samples.compactMap { $0.eClusterFreqMHz }
+    let pFreqs = samples.compactMap { $0.pClusterFreqMHz }
+    let eStats = stats(eFreqs) ?? Stats(avg: 0, min: 0, max: 0)
+    let pStats = stats(pFreqs) ?? Stats(avg: 0, min: 0, max: 0)
+
+    return String(
+        format:
+        """
+          Power samples: %d
+          Power overall: avg=%.2f W  peak=%.2f W
+          Freq E-Cluster: avg=%.0f MHz  peak=%.0f MHz
+          Freq P-Cluster: avg=%.0f MHz  peak=%.0f MHz
+        """,
+        samples.count,
+        totalStats.avg, totalStats.max,
+        eStats.avg, eStats.max,
+        pStats.avg, pStats.max,
+    )
+}
+
+// MARK: - Scheduler Boosting (QoS + Task Role + Activity)
+
+/// Declares foreground task role, latency-critical activity, and QoS.
+/// Keep an instance alive for the entire inference run.
+final class SchedulerBoost {
+    private var activity: NSObjectProtocol?
+
+    init() {
+        // Prevent App Nap / energy throttling hints.
+        activity = ProcessInfo.processInfo.beginActivity(
+            options: [
+                .userInitiated,           // indicate this is a user-initiated task that should be prioritized
+                .latencyCritical,         // optimize for latency, not power
+                .idleSystemSleepDisabled  // prevent sleep due to inactivity during long runs (backgrounded or not)
+            ],
+            reason: "Low-latency TTS inference"
+        )
+
+        // Current thread QoS.
+        pthread_set_qos_class_self_np(QOS_CLASS_USER_INTERACTIVE, 0) // Also set the higher-level QoS for any APIs that check it instead of pthread directly
+        Thread.current.qualityOfService = .userInteractive
+
+        // Optional Mach task foreground role.
+        setTaskForegroundRole()
+    }
+
+    deinit {
+        if let activity {
+            ProcessInfo.processInfo.endActivity(activity)
+        }
+    }
+}
+
+private func setTaskForegroundRole() {
+    #if os(macOS)
+    var policy = task_category_policy_data_t()
+    policy.role = TASK_FOREGROUND_APPLICATION
+    let count = mach_msg_type_number_t(
+        MemoryLayout<task_category_policy_data_t>.size /
+        MemoryLayout<integer_t>.size
+    )
+    let kr = withUnsafeMutablePointer(to: &policy) { ptr in
+        ptr.withMemoryRebound(to: integer_t.self, capacity: Int(count)) { intPtr in
+            task_policy_set(
+                mach_task_self_,
+                task_policy_flavor_t(TASK_CATEGORY_POLICY),
+                intPtr,
+                count
+            )
+        }
+    }
+    if kr != KERN_SUCCESS {
+        print("Warning: task_policy_set foreground failed: \(kr)")
+    }
+    #endif
+}
+
+// MARK: - CoreML Execution Provider (GPU Mode)
+
+enum CoreMLComputeUnits: String, CaseIterable {
+    case allUnits = "ALL"
+    case cpuAndGpu = "CPUAndGPU"
+    case cpuOnly = "CPUOnly"
+}
+
+func makeCoreMLProviderOptions(computeUnits: String, modelFormat: String, cacheDir: String?) -> [AnyHashable: Any] {
+    var options: [AnyHashable: Any] = [
+        "MLComputeUnits": computeUnits,
+        "ModelFormat": modelFormat,
+        "RequireStaticInputShapes": "1", // no dynamic shapes, force to settle for better optimization
+        "EnableOnSubgraphs": "0",        // subgraph support is still spotty
+        "ProfileComputePlan": "0",       // disable internal profiling to reduce overhead and noise
+        "SpecializationStrategy": "FastPrediction" // optimize for latency over memory (we have plenty of RAM headroom in typical use cases)
+    ]
+    if let cacheDir {
+        options["ModelCacheDirectory"] = cacheDir
+    }
+    return options
+}
+
+// MARK: - ORT Output Extraction
+
+func floatArray(from value: ORTValue) throws -> [Float] {
+    let data = try value.tensorData() as Data
+    return data.withUnsafeBytes {
+        Array($0.bindMemory(to: Float.self))
+    }
+}
+
+// MARK: - Tensor Helpers
+
+func makeFloatTensor(_ data: [Float], shape: [NSNumber]) throws -> ORTValue {
+    return try ORTValue(tensorData: NSMutableData(bytes: data, length: data.count * MemoryLayout<Float>.size),
+                        elementType: .float,
+                        shape: shape)
+}
+
+func makeInt64Tensor(_ data: [Int64], shape: [NSNumber]) throws -> ORTValue {
+    return try ORTValue(tensorData: NSMutableData(bytes: data, length: data.count * MemoryLayout<Int64>.size),
+                        elementType: .int64,
+                        shape: shape)
+}
+
+// MARK: - Style Helpers
+
+func copyStyleComponent(
+    _ component: VoiceStyleData.StyleComponent,
+    into flat: inout [Float],
+    batchIndex: Int,
+    dim1: Int,
+    dim2: Int
+) {
+    let offset = batchIndex * dim1 * dim2
+    var idx = 0
+    for batch in component.data {
+        for row in batch {
+            for val in row {
+                flat[offset + idx] = val
+                idx += 1
+            }
+        }
+    }
+}
+
+// MARK: - Session Option Helpers
+
+func makeORTSessionOptions(intraOpThreads: Int32) throws -> ORTSessionOptions {
+    let options = try ORTSessionOptions()
+    try options.setGraphOptimizationLevel(.all)
+    if intraOpThreads > 0 {
+        try options.setIntraOpNumThreads(intraOpThreads)
+
+        // values as a result of a small grid search study
+        try options.addConfigEntry(withKey: "session.intra_op.allow_spinning", value: "1")
+        try options.addConfigEntry(withKey: "session.intra_op.spin_duration_us", value: "750")
+        try options.addConfigEntry(withKey: "session.intra_op.spin_backoff_max", value: "16")
+    }
+    return options
+}
+
+func createCPUSession(
+    env: ORTEnv,
+    modelPath: String,
+    intraOpThreads: Int32
+) throws -> ORTSession {
+    let options = try makeORTSessionOptions(intraOpThreads: intraOpThreads)
+    return try ORTSession(env: env, modelPath: modelPath, sessionOptions: options)
+}
+
+func coreMLFallbackTiers(preferred: String) -> [(computeUnits: String, label: String)] {
+    let allTiers: [(computeUnits: String, label: String)] = [
+        ("CPUAndNeuralEngine", "CoreML (CPU+ANE)"),
+        ("ALL", "CoreML (CPU+GPU+ANE)"),
+        ("CPUAndGPU", "CoreML (CPU+GPU)"),
+        ("CPUOnly", "CoreML (CPU only)")
+    ]
+    let fallbacks = allTiers.filter { $0.computeUnits != preferred }
+    return allTiers.first(where: { $0.computeUnits == preferred }).map { [$0] + fallbacks } ?? fallbacks
+}
+
+func createSessionWithCoreMLFallback(
+    env: ORTEnv,
+    modelPath: String,
+    computeUnits: String,
+    cacheDir: String?,
+    intraOpThreads: Int32 = 0,
+    modelFormat: String = "MLProgram"
+) throws -> ORTSession {
+    // "CPU" means pure CPU (no CoreML EP)
+    guard computeUnits != "CPU" else {
+        print("Using CPU for inference")
+        return try createCPUSession(env: env, modelPath: modelPath, intraOpThreads: intraOpThreads)
+    }
+
+    guard ORTIsCoreMLExecutionProviderAvailable() else {
+        print("Warning: CoreML EP is not available in this ONNX Runtime build. Falling back to CPU.")
+        return try createCPUSession(env: env, modelPath: modelPath, intraOpThreads: intraOpThreads)
+    }
+
+    let tiers = coreMLFallbackTiers(preferred: computeUnits)
+
+    for (tierComputeUnits, label) in tiers {
+        do {
+            let options = try makeORTSessionOptions(intraOpThreads: intraOpThreads)
+            let providerOptions = makeCoreMLProviderOptions(
+                computeUnits: tierComputeUnits,
+                modelFormat: modelFormat,
+                cacheDir: cacheDir
+            )
+            try options.appendCoreMLExecutionProvider(withOptionsV2: providerOptions)
+            let session = try ORTSession(env: env, modelPath: modelPath, sessionOptions: options)
+            print("Using \(label) for inference")
+            return session
+        } catch {
+            if tiers.last?.computeUnits == tierComputeUnits {
+                // Last tier failed, fall back to CPU
+                print("Warning: CoreML EP failed. Falling back to CPU.")
+                return try createCPUSession(env: env, modelPath: modelPath, intraOpThreads: intraOpThreads)
+            }
+            // Continue to next tier
+        }
+    }
+
+    // Should not reach here, but just in case
+    return try createCPUSession(env: env, modelPath: modelPath, intraOpThreads: intraOpThreads)
+}
+
+// MARK: - Model Paths & Sessions
+
+struct ModelPaths {
+    let config: String
+    let unicodeIndexer: String
+    let durationPredictor: String
+    let textEncoder: String
+    let vectorEstimator: String
+    let vocoder: String
+    let cacheDir: String
+}
+
+func makeModelPaths(_ onnxDir: String) -> ModelPaths {
+    let p = { (onnxDir as NSString).appendingPathComponent($0) }
+    return ModelPaths(
+        config: p("tts.json"),
+        unicodeIndexer: p("unicode_indexer.json"),
+        durationPredictor: p("duration_predictor.onnx"),
+        textEncoder: p("text_encoder.onnx"),
+        vectorEstimator: p("vector_estimator.onnx"),
+        vocoder: p("vocoder.onnx"),
+        cacheDir: (onnxDir as NSString).appendingPathComponent("../coreml_cache")
+    )
+}
+
+struct TTSSessions {
+    let dp: ORTSession
+    let textEnc: ORTSession
+    let vectorEst: ORTSession
+    let vocoder: ORTSession
+}
+
+func loadTTSSessions(
+    env: ORTEnv,
+    paths: ModelPaths,
+    computeUnits: String,
+    intraOpThreads: Int32
+) throws -> TTSSessions {
+    // dp/textEnc/vectorEst run CPU (vectorEst is in the denoising loop;
+    // CoreML partition overhead is multiplied by totalStep).
+    // Only vocoder uses CoreML when requested.
+    let dp = try createSessionWithCoreMLFallback(
+        env: env,
+        modelPath: paths.durationPredictor,
+        computeUnits: "CPU",
+        cacheDir: paths.cacheDir,
+        intraOpThreads: intraOpThreads
+    )
+    let textEnc = try createSessionWithCoreMLFallback(
+        env: env,
+        modelPath: paths.textEncoder,
+        computeUnits: "CPU",
+        cacheDir: paths.cacheDir,
+        intraOpThreads: intraOpThreads
+    )
+    let vectorEst = try createSessionWithCoreMLFallback(
+        env: env,
+        modelPath: paths.vectorEstimator,
+        computeUnits: "CPU",
+        cacheDir: paths.cacheDir,
+        intraOpThreads: intraOpThreads
+    )
+    let vocoder = try createSessionWithCoreMLFallback(
+        env: env,
+        modelPath: paths.vocoder,
+        computeUnits: computeUnits,
+        cacheDir: paths.cacheDir,
+        intraOpThreads: intraOpThreads
+    )
+    return TTSSessions(dp: dp, textEnc: textEnc, vectorEst: vectorEst, vocoder: vocoder)
+}
+
+func loadTextToSpeech(_ onnxDir: String, _ computeUnits: String, _ intraOpThreads: Int32, _ env: ORTEnv) throws -> TextToSpeech {
+    let paths = makeModelPaths(onnxDir)
+    let cfgs = try loadCfgs(paths.config)
+    let sessions = try loadTTSSessions(env: env, paths: paths, computeUnits: computeUnits, intraOpThreads: intraOpThreads)
+    let textProcessor = try UnicodeProcessor(unicodeIndexerPath: paths.unicodeIndexer)
+
     return TextToSpeech(cfgs: cfgs, textProcessor: textProcessor,
-                       dpOrt: dpOrt, textEncOrt: textEncOrt,
-                       vectorEstOrt: vectorEstOrt, vocoderOrt: vocoderOrt)
+                       dpOrt: sessions.dp, textEncOrt: sessions.textEnc,
+                       vectorEstOrt: sessions.vectorEst, vocoderOrt: sessions.vocoder)
 }
