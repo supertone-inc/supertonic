@@ -3,10 +3,17 @@ import os
 
 import soundfile as sf
 
-from helper import load_text_to_speech, timer, sanitize_filename, load_voice_style
+from helper import (
+    MAX_TEXT_CHARS,
+    load_text_to_speech,
+    timer,
+    sanitize_filename,
+    load_voice_style,
+    validate_synthesis_inputs,
+)
 
 
-def parse_args():
+def build_parser():
     parser = argparse.ArgumentParser(description="TTS Inference with ONNX")
 
     # Device settings
@@ -67,50 +74,70 @@ def parse_args():
         "--save-dir", type=str, default="results", help="Output directory"
     )
 
-    return parser.parse_args()
+    return parser
 
 
-print("=== TTS Inference with ONNX Runtime (Python) ===\n")
+def parse_args(argv=None):
+    parser = build_parser()
+    args = parser.parse_args(argv)
+    try:
+        if not args.batch and len(args.text) != 1:
+            raise ValueError("Non-batch mode supports exactly one text; use --batch for multiple texts")
+        validate_synthesis_inputs(
+            args.text,
+            args.lang,
+            args.total_step,
+            args.speed,
+            style_count=len(args.voice_style),
+            n_test=args.n_test,
+            max_text_chars=None if not args.batch else MAX_TEXT_CHARS,
+        )
+    except ValueError as exc:
+        parser.error(str(exc))
+    return args
 
-# --- 1. Parse arguments --- #
-args = parse_args()
-total_step = args.total_step
-speed = args.speed
-n_test = args.n_test
-save_dir = args.save_dir
-voice_style_paths = args.voice_style
-text_list = args.text
-lang_list = args.lang
-batch = args.batch
 
-assert len(voice_style_paths) == len(
-    text_list
-), f"Number of voice styles ({len(voice_style_paths)}) must match number of texts ({len(text_list)})"
-bsz = len(voice_style_paths)
+def main(argv=None):
+    # --- 1. Parse arguments --- #
+    args = parse_args(argv)
+    print("=== TTS Inference with ONNX Runtime (Python) ===\n")
+    total_step = args.total_step
+    speed = args.speed
+    n_test = args.n_test
+    save_dir = args.save_dir
+    voice_style_paths = args.voice_style
+    text_list = args.text
+    lang_list = args.lang
+    batch = args.batch
+    bsz = len(voice_style_paths)
 
-# --- 2. Load Text to Speech --- #
-text_to_speech = load_text_to_speech(args.onnx_dir, args.use_gpu)
+    # --- 2. Load Text to Speech --- #
+    text_to_speech = load_text_to_speech(args.onnx_dir, args.use_gpu)
 
-# --- 3. Load Voice Style --- #
-style = load_voice_style(voice_style_paths, verbose=True)
+    # --- 3. Load Voice Style --- #
+    style = load_voice_style(voice_style_paths, verbose=True)
 
-# --- 4. Synthesize Speech --- #
-for n in range(n_test):
-    print(f"\n[{n+1}/{n_test}] Starting synthesis...")
-    with timer("Generating speech from text"):
-        if batch:
-            wav, duration = text_to_speech.batch(
-                text_list, lang_list, style, total_step, speed
-            )
-        else:
-            wav, duration = text_to_speech(
-                text_list[0], lang_list[0], style, total_step, speed
-            )
-    if not os.path.exists(save_dir):
-        os.makedirs(save_dir)
-    for b in range(bsz):
-        fname = f"{sanitize_filename(text_list[b], 20)}_{n+1}.wav"
-        w = wav[b, : int(text_to_speech.sample_rate * duration[b].item())]  # [T_trim]
-        sf.write(os.path.join(save_dir, fname), w, text_to_speech.sample_rate)
-        print(f"Saved: {save_dir}/{fname}")
-print("\n=== Synthesis completed successfully! ===")
+    # --- 4. Synthesize Speech --- #
+    for n in range(n_test):
+        print(f"\n[{n+1}/{n_test}] Starting synthesis...")
+        with timer("Generating speech from text"):
+            if batch:
+                wav, duration = text_to_speech.batch(
+                    text_list, lang_list, style, total_step, speed
+                )
+            else:
+                wav, duration = text_to_speech(
+                    text_list[0], lang_list[0], style, total_step, speed
+                )
+        if not os.path.exists(save_dir):
+            os.makedirs(save_dir)
+        for b in range(bsz):
+            fname = f"{sanitize_filename(text_list[b], 20)}_{n+1}.wav"
+            w = wav[b, : int(text_to_speech.sample_rate * duration[b].item())]  # [T_trim]
+            sf.write(os.path.join(save_dir, fname), w, text_to_speech.sample_rate)
+            print(f"Saved: {save_dir}/{fname}")
+    print("\n=== Synthesis completed successfully! ===")
+
+
+if __name__ == "__main__":
+    main()

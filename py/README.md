@@ -126,20 +126,20 @@ This will:
 |----------|------|---------|-------------|
 | `--use-gpu` | flag | False | Use GPU for inference (with CPU fallback) |
 | `--onnx-dir` | str | `../assets/onnx` | Path to ONNX model directory |
-| `--total-step` | int | 8 | Number of denoising steps (higher = better quality, slower) |
-| `--speed` | float | 1.05 | Speech speed factor (higher = faster, lower = slower) |
-| `--n-test` | int | 4 | Number of times to generate each sample |
+| `--total-step` | int | 8 | Number of denoising steps, 1-50 (higher = better quality, slower) |
+| `--speed` | float | 1.05 | Speech speed factor, 0.5-2.0 (higher = faster, lower = slower) |
+| `--n-test` | int | 4 | Number of times to generate each sample, 1-10 |
 | `--voice-style` | str+ | `../assets/voice_styles/M1.json` | Voice style file path(s) |
-| `--text` | str+ | (long default text) | Text(s) to synthesize |
+| `--text` | str+ | (long default text) | Text(s) to synthesize; batch items and generated chunks are limited to 5,000 characters each |
 | `--lang` | str+ | `en` | Language(s) for text(s); see the main README for all 31 codes |
 | `--save-dir` | str | `results` | Output directory |
 | `--batch` | flag | False | Enable batch mode (disables automatic text chunking) |
 
 ## Notes
 
-- **Batch Processing**: The number of `--voice-style` files must match the number of `--text` entries
+- **Input Bounds**: Batch mode accepts up to 8 texts, batch items and generated chunks are limited to 5,000 characters each, `--total-step` is limited to 1-50, `--speed` to 0.5-2.0, and `--n-test` to 1-10
+- **Batch Processing**: The number of `--voice-style`, `--text`, and `--lang` entries must match
 - **Multilingual Support**: Use `--lang` to specify language(s). Available: 31 languages; see the main README for the full list
-- **Long-Form Inference**: Without `--batch` flag, long texts are automatically chunked and combined into a single audio file with natural pauses
+- **Long-Form Inference**: Without `--batch` flag, valid inputs are automatically chunked and combined into a single audio file with natural pauses
 - **Quality vs Speed**: Higher `--total-step` values produce better quality but take longer
 - **GPU Support**: GPU mode is not supported yet
-
