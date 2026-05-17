@@ -49,7 +49,7 @@ class RecordingTextToSpeech(TextToSpeech):
         super().__init__(cfgs, None, None, None, None, None)
         self.inferred_texts = []
 
-    def _infer(self, text_list, lang_list, style, total_step, speed=1.05):
+    def _infer_validated(self, text_list, lang_list, style, total_step, speed=1.05):
         self.inferred_texts.extend(text_list)
         return np.zeros((1, 1), dtype=np.float32), np.array([0.001], dtype=np.float32)
 
@@ -74,6 +74,27 @@ class ValidateSynthesisInputsTests(unittest.TestCase):
             style_count=np.int64(1),
             n_test=np.int64(4),
         )
+
+    def test_accepts_matching_style_and_style_count(self):
+        validate_synthesis_inputs(
+            ["hello"],
+            ["en"],
+            total_step=8,
+            speed=1.05,
+            style=make_style(1),
+            style_count=np.int64(1),
+        )
+
+    def test_rejects_inconsistent_style_and_style_count(self):
+        with self.assertRaisesRegex(ValueError, "style_count"):
+            validate_synthesis_inputs(
+                ["hello", "bonjour"],
+                ["en", "fr"],
+                8,
+                1.05,
+                style=make_style(1),
+                style_count=2,
+            )
 
     def test_rejects_total_step_outside_bounds(self):
         for total_step in (MIN_TOTAL_STEP - 1, MAX_TOTAL_STEP + 1):
@@ -138,6 +159,27 @@ class TextToSpeechValidationTests(unittest.TestCase):
         self.assertTrue(all(len(chunk) <= MAX_TEXT_CHARS for chunk in tts.inferred_texts))
         self.assertEqual(wav.shape[0], 1)
         self.assertEqual(duration.shape, (1,))
+
+    def test_call_rejects_generated_chunk_over_text_limit(self):
+        tts = RecordingTextToSpeech()
+        text = "a" * (MAX_TEXT_CHARS + 1)
+
+        with self.assertRaisesRegex(ValueError, "at most"):
+            tts(text, "en", make_style(1), 8, 1.05)
+
+    def test_batch_rejects_overlong_text(self):
+        tts = RecordingTextToSpeech()
+        text = "a" * (MAX_TEXT_CHARS + 1)
+
+        with self.assertRaisesRegex(ValueError, "at most"):
+            tts.batch([text], ["en"], make_style(1), 8, 1.05)
+
+    def test_infer_rejects_overlong_text(self):
+        tts = RecordingTextToSpeech()
+        text = "a" * (MAX_TEXT_CHARS + 1)
+
+        with self.assertRaisesRegex(ValueError, "at most"):
+            tts._infer([text], ["en"], make_style(1), 8, 1.05)
 
 
 class CliValidationTests(unittest.TestCase):

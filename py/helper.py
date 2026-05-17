@@ -48,6 +48,27 @@ def _get_style_count(style) -> int:
     return int(shape[0])
 
 
+def _validate_text_list(
+    text_list: list[str],
+    max_text_chars: Optional[int],
+    max_batch_size: Optional[int],
+) -> None:
+    if isinstance(text_list, str) or not isinstance(text_list, (list, tuple)):
+        raise ValueError("text_list must be a list of strings")
+    if not text_list:
+        raise ValueError("text_list must contain at least one text")
+    if max_batch_size is not None and len(text_list) > max_batch_size:
+        raise ValueError(f"batch size must be at most {max_batch_size}")
+
+    for i, text in enumerate(text_list):
+        if not isinstance(text, str):
+            raise ValueError(f"text_list[{i}] must be a string")
+        if not text.strip():
+            raise ValueError(f"text_list[{i}] must not be blank")
+        if max_text_chars is not None and len(text) > max_text_chars:
+            raise ValueError(f"text_list[{i}] must be at most {max_text_chars} characters")
+
+
 def validate_synthesis_inputs(
     text_list: list[str],
     lang_list: list[str],
@@ -67,12 +88,7 @@ def validate_synthesis_inputs(
     if n_test is not None:
         _validate_int_range("n_test", n_test, MIN_N_TEST, MAX_N_TEST)
 
-    if isinstance(text_list, str) or not isinstance(text_list, (list, tuple)):
-        raise ValueError("text_list must be a list of strings")
-    if not text_list:
-        raise ValueError("text_list must contain at least one text")
-    if max_batch_size is not None and len(text_list) > max_batch_size:
-        raise ValueError(f"batch size must be at most {max_batch_size}")
+    _validate_text_list(text_list, max_text_chars, max_batch_size)
 
     if isinstance(lang_list, str) or not isinstance(lang_list, (list, tuple)):
         raise ValueError("lang_list must be a list of language codes")
@@ -81,22 +97,20 @@ def validate_synthesis_inputs(
             f"Number of languages ({len(lang_list)}) must match number of texts ({len(text_list)})"
         )
 
-    if style is not None:
-        style_count = _get_style_count(style)
     if style_count is not None:
         _validate_int_range("style_count", style_count, 1, MAX_BATCH_SIZE)
+    if style is not None:
+        actual_style_count = _get_style_count(style)
+        if style_count is not None and style_count != actual_style_count:
+            raise ValueError(
+                f"style_count ({style_count}) must match style batch dimension ({actual_style_count})"
+            )
+        style_count = actual_style_count
+    if style_count is not None:
         if style_count != len(text_list):
             raise ValueError(
                 f"Number of style vectors ({style_count}) must match number of texts ({len(text_list)})"
             )
-
-    for i, text in enumerate(text_list):
-        if not isinstance(text, str):
-            raise ValueError(f"text_list[{i}] must be a string")
-        if not text.strip():
-            raise ValueError(f"text_list[{i}] must not be blank")
-        if max_text_chars is not None and len(text) > max_text_chars:
-            raise ValueError(f"text_list[{i}] must be at most {max_text_chars} characters")
 
     for i, lang in enumerate(lang_list):
         if not isinstance(lang, str):
@@ -275,6 +289,16 @@ class TextToSpeech:
         speed: float = 1.05,
     ) -> tuple[np.ndarray, np.ndarray]:
         validate_synthesis_inputs(text_list, lang_list, total_step, speed, style=style)
+        return self._infer_validated(text_list, lang_list, style, total_step, speed)
+
+    def _infer_validated(
+        self,
+        text_list: list[str],
+        lang_list: list[str],
+        style: Style,
+        total_step: int,
+        speed: float = 1.05,
+    ) -> tuple[np.ndarray, np.ndarray]:
         bsz = len(text_list)
         text_ids, text_mask = self.text_processor(text_list, lang_list)
         dur_onnx, *_ = self.dp_ort.run(
@@ -323,10 +347,13 @@ class TextToSpeech:
         )
         max_len = 120 if lang in ("ko", "ja") else 300
         text_list = chunk_text(text, max_len=max_len)
+        _validate_text_list(text_list, MAX_TEXT_CHARS, max_batch_size=None)
         wav_cat = None
         dur_cat = None
         for text in text_list:
-            wav, dur_onnx = self._infer([text], [lang], style, total_step, speed)
+            wav, dur_onnx = self._infer_validated(
+                [text], [lang], style, total_step, speed
+            )
             if wav_cat is None:
                 wav_cat = wav
                 dur_cat = dur_onnx
@@ -347,7 +374,7 @@ class TextToSpeech:
         speed: float = 1.05,
     ) -> tuple[np.ndarray, np.ndarray]:
         validate_synthesis_inputs(text_list, lang_list, total_step, speed, style=style)
-        return self._infer(text_list, lang_list, style, total_step, speed)
+        return self._infer_validated(text_list, lang_list, style, total_step, speed)
 
 
 def length_to_mask(lengths: np.ndarray, max_len: Optional[int] = None) -> np.ndarray:
