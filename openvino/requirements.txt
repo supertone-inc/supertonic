@@ -1,0 +1,6 @@
+openvino==2026.1.0
+openvino-telemetry==2025.2.0
+numpy>=1.26.0
+soundfile>=0.12.1
+librosa>=0.10.0
+PyYAML>=6.0
