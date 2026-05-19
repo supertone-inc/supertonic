@@ -16,7 +16,7 @@
   <a href="https://trendshift.io/repositories/15657" target="_blank"><img src="https://trendshift.io/api/badge/repositories/15657" alt="supertone-inc%2Fsupertonic | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
 </p>
 
-**Supertonic** is a lightning-fast, on-device multilingual text-to-speech system designed for local inference with minimal overhead. Powered by ONNX Runtime, it runs entirely on your device—no cloud, no API calls, no privacy concerns.
+**Supertonic** is a lightning-fast, on-device, multilingual text-to-speech system designed for local inference with minimal overhead. Powered by ONNX Runtime, it runs entirely on your device—no cloud, no API calls, no privacy concerns.
 
 ### ✨ Highlights
 
