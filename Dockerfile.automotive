@@ -1,0 +1,33 @@
+FROM python:3.12-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    MALLOC_ARENA_MAX=2 \
+    OMP_WAIT_POLICY=PASSIVE \
+    OMP_NUM_THREADS=1 \
+    OPENBLAS_NUM_THREADS=1 \
+    MKL_NUM_THREADS=1 \
+    NUMEXPR_NUM_THREADS=1
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends libsndfile1 \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app/py
+
+RUN pip install --no-cache-dir \
+    onnxruntime==1.23.1 \
+    "numpy>=1.26.0" \
+    "soundfile>=0.12.1" \
+    "PyYAML>=6.0"
+
+COPY py/helper.py py/vietnamese_tn_benchmark.py ./
+COPY py/configs ./configs
+
+RUN useradd --create-home --uid 10001 appuser \
+    && mkdir -p /app/py/results \
+    && chown -R appuser:appuser /app
+
+USER appuser
+
+ENTRYPOINT ["python", "vietnamese_tn_benchmark.py"]

@@ -1,0 +1,235 @@
+benchmark:
+  name: vietnamese_text_normalization
+  language: vi
+  description: Compare symbolic Vietnamese inputs against pre-normalized Vietnamese text for TTS quality/performance experiments.
+
+runtime:
+  onnx_dir: ../assets/onnx
+  voice_style: ../assets/voice_styles/F1.json
+  total_step: 6
+  speed: 1.5
+  intra_op_num_threads: 2
+  inter_op_num_threads: 1
+  warmup_runs: 1
+  repeats_per_case: 1
+  save_audio: true
+  output_dir: results/vietnamese_tn_benchmark
+
+metrics:
+  include:
+    - latency_seconds
+    - audio_duration_seconds
+    - rtf
+    - throughput_chars_per_second
+    - throughput_audio_seconds_per_second
+    - peak_rss_mb
+
+normalization_methods:
+  - id: symbolic_passthrough
+    input_field: symbolic
+    description: Feed the symbolic text directly to Supertonic preprocessing.
+  - id: human_normalized
+    input_field: normalized
+    description: Feed manually normalized Vietnamese text.
+
+test_cases:
+  - id: distance_1250000km
+    category: distance
+    symbolic: "Xe đã đi được 1250000km trong hành trình thử nghiệm."
+    normalized: "Xe đã đi được một triệu hai trăm năm mươi nghìn ki lô mét trong hành trình thử nghiệm."
+  - id: time_1940
+    category: time
+    symbolic: "Lịch bảo dưỡng bắt đầu lúc 19:40 hôm nay."
+    normalized: "Lịch bảo dưỡng bắt đầu lúc mười chín giờ bốn mươi hôm nay."
+  - id: temperature_42c
+    category: temperature
+    symbolic: "Nhiệt độ pin hiện là 42oC sau khi sạc nhanh."
+    normalized: "Nhiệt độ pin hiện là bốn mươi hai độ C sau khi sạc nhanh."
+  - id: currency_1250000vnd
+    category: currency
+    symbolic: "Chi phí sạc tạm tính là 1.250.000đ."
+    normalized: "Chi phí sạc tạm tính là một triệu hai trăm năm mươi nghìn đồng."
+  - id: percent_99_9
+    category: percentage
+    symbolic: "Mức pin đã đạt 99,9%."
+    normalized: "Mức pin đã đạt chín mươi chín phẩy chín phần trăm."
+  - id: speed_120kmh
+    category: speed
+    symbolic: "Xe đang chạy ở 120km/h trên cao tốc."
+    normalized: "Xe đang chạy ở một trăm hai mươi ki lô mét trên giờ trên cao tốc."
+  - id: date_26052026
+    category: date
+    symbolic: "Cuộc hẹn được đặt vào ngày 26/05/2026."
+    normalized: "Cuộc hẹn được đặt vào ngày hai mươi sáu tháng năm năm hai nghìn không trăm hai mươi sáu."
+  - id: phone_19005656
+    category: phone
+    symbolic: "Vui lòng gọi tổng đài 1900 5656 để được hỗ trợ."
+    normalized: "Vui lòng gọi tổng đài một chín không không, năm sáu năm sáu để được hỗ trợ."
+  - id: license_30f12345
+    category: license_plate
+    symbolic: "Biển số xe là 30F-123.45."
+    normalized: "Biển số xe là ba mươi F, một hai ba, bốn năm."
+  - id: battery_15min
+    category: duration
+    symbolic: "Thời gian sạc còn lại khoảng 15 phút."
+    normalized: "Thời gian sạc còn lại khoảng mười lăm phút."
+  - id: coordinate_10_7769
+    category: coordinate
+    symbolic: "Vị trí hiện tại là 10.7769, 106.7009."
+    normalized: "Vị trí hiện tại là mười phẩy bảy bảy sáu chín, một trăm linh sáu phẩy bảy không không chín."
+  - id: version_3_2_1
+    category: version
+    symbolic: "Phần mềm đã cập nhật lên phiên bản 3.2.1."
+    normalized: "Phần mềm đã cập nhật lên phiên bản ba chấm hai chấm một."
+  - id: fraction_1_2
+    category: fraction
+    symbolic: "Bình chứa còn 1/2 dung tích."
+    normalized: "Bình chứa còn một phần hai dung tích."
+  - id: range_5_7
+    category: range
+    symbolic: "Hệ thống cần 5-7 phút để khởi động."
+    normalized: "Hệ thống cần năm đến bảy phút để khởi động."
+  - id: address_12a
+    category: address
+    symbolic: "Điểm đến là số 12A đường Lý Thường Kiệt."
+    normalized: "Điểm đến là số mười hai A đường Lý Thường Kiệt."
+  - id: ordinal_q1
+    category: ordinal
+    symbolic: "Báo cáo Q1/2026 đã sẵn sàng."
+    normalized: "Báo cáo quý một năm hai nghìn không trăm hai mươi sáu đã sẵn sàng."
+  - id: mass_2_5kg
+    category: mass
+    symbolic: "Gói hàng nặng 2,5kg."
+    normalized: "Gói hàng nặng hai phẩy năm ki lô gam."
+  - id: volume_750ml
+    category: volume
+    symbolic: "Bình nước còn 750ml."
+    normalized: "Bình nước còn bảy trăm năm mươi mi li lít."
+  - id: area_120m2
+    category: area
+    symbolic: "Diện tích bãi đỗ là 120m2."
+    normalized: "Diện tích bãi đỗ là một trăm hai mươi mét vuông."
+  - id: power_250kw
+    category: power
+    symbolic: "Trạm hỗ trợ công suất tối đa 250kW."
+    normalized: "Trạm hỗ trợ công suất tối đa hai trăm năm mươi ki lô oát."
+  - id: voltage_220v
+    category: voltage
+    symbolic: "Nguồn điện đầu vào là 220V."
+    normalized: "Nguồn điện đầu vào là hai trăm hai mươi vôn."
+  - id: current_32a
+    category: current
+    symbolic: "Dòng sạc hiện tại là 32A."
+    normalized: "Dòng sạc hiện tại là ba mươi hai am pe."
+  - id: acceleration_7_5s
+    category: duration
+    symbolic: "Xe tăng tốc từ 0-100km/h trong 7,5s."
+    normalized: "Xe tăng tốc từ không đến một trăm ki lô mét trên giờ trong bảy phẩy năm giây."
+  - id: email_support
+    category: email
+    symbolic: "Hãy gửi phản hồi tới support@example.com."
+    normalized: "Hãy gửi phản hồi tới support a còng example chấm com."
+  - id: url_vinfast
+    category: url
+    symbolic: "Xem chi tiết tại https://vinfastauto.com."
+    normalized: "Xem chi tiết tại vinfastauto chấm com."
+  - id: hashtag_sale
+    category: social
+    symbolic: "Chương trình có mã #SALE50."
+    normalized: "Chương trình có mã hashtag sale năm mươi."
+  - id: code_ab12
+    category: code
+    symbolic: "Mã xác nhận của bạn là AB12-CD34."
+    normalized: "Mã xác nhận của bạn là A B một hai, C D ba bốn."
+  - id: negative_5c
+    category: temperature
+    symbolic: "Nhiệt độ ngoài trời là -5oC."
+    normalized: "Nhiệt độ ngoài trời là âm năm độ C."
+  - id: decimal_0_75
+    category: decimal
+    symbolic: "Hệ số tiêu thụ là 0,75."
+    normalized: "Hệ số tiêu thụ là không phẩy bảy mươi lăm."
+  - id: large_money_2500000000
+    category: currency
+    symbolic: "Giá niêm yết là 2.500.000.000 VND."
+    normalized: "Giá niêm yết là hai tỷ năm trăm triệu đồng."
+  - id: small_money_99000
+    category: currency
+    symbolic: "Phí dịch vụ là 99.000đ mỗi tháng."
+    normalized: "Phí dịch vụ là chín mươi chín nghìn đồng mỗi tháng."
+  - id: date_iso
+    category: date
+    symbolic: "Hạn đăng kiểm là 2026-12-31."
+    normalized: "Hạn đăng kiểm là ngày ba mươi mốt tháng mười hai năm hai nghìn không trăm hai mươi sáu."
+  - id: time_seconds
+    category: time
+    symbolic: "Bản ghi được tạo lúc 08:05:09."
+    normalized: "Bản ghi được tạo lúc tám giờ không năm phút không chín giây."
+  - id: ratio_16_9
+    category: ratio
+    symbolic: "Màn hình có tỷ lệ 16:9."
+    normalized: "Màn hình có tỷ lệ mười sáu chia chín."
+  - id: math_3_plus_5
+    category: math
+    symbolic: "Kết quả của 3+5 là 8."
+    normalized: "Kết quả của ba cộng năm là tám."
+  - id: measurement_6_8l_100km
+    category: fuel
+    symbolic: "Mức tiêu thụ là 6,8L/100km."
+    normalized: "Mức tiêu thụ là sáu phẩy tám lít trên một trăm ki lô mét."
+  - id: storage_512gb
+    category: storage
+    symbolic: "Bộ nhớ khả dụng còn 512GB."
+    normalized: "Bộ nhớ khả dụng còn năm trăm mười hai ghi ga bai."
+  - id: frequency_60hz
+    category: frequency
+    symbolic: "Tần số quét là 60Hz."
+    normalized: "Tần số quét là sáu mươi héc."
+  - id: pressure_2_4bar
+    category: pressure
+    symbolic: "Áp suất lốp trước là 2,4bar."
+    normalized: "Áp suất lốp trước là hai phẩy bốn bar."
+  - id: vin_code
+    category: vehicle_id
+    symbolic: "Số VIN kết thúc bằng VF8ABC123456."
+    normalized: "Số VIN kết thúc bằng V F tám A B C một hai ba bốn năm sáu."
+  - id: train_code
+    category: transport
+    symbolic: "Chuyến xe buýt số 86 khởi hành lúc 06:30."
+    normalized: "Chuyến xe buýt số tám mươi sáu khởi hành lúc sáu giờ ba mươi."
+  - id: flight_vn123
+    category: transport
+    symbolic: "Chuyến bay VN123 hạ cánh lúc 21:15."
+    normalized: "Chuyến bay V N một hai ba hạ cánh lúc hai mươi mốt giờ mười lăm."
+  - id: rpm_3500
+    category: rpm
+    symbolic: "Động cơ đang quay ở 3.500rpm."
+    normalized: "Động cơ đang quay ở ba nghìn năm trăm vòng trên phút."
+  - id: altitude_1500m
+    category: altitude
+    symbolic: "Độ cao hiện tại là 1.500m so với mực nước biển."
+    normalized: "Độ cao hiện tại là một nghìn năm trăm mét so với mực nước biển."
+  - id: invoice_no
+    category: invoice
+    symbolic: "Mã hóa đơn là HD-2026-00045."
+    normalized: "Mã hóa đơn là H D, hai không hai sáu, không không không bốn năm."
+  - id: bank_account
+    category: finance
+    symbolic: "Số tài khoản nhận tiền là 0123456789."
+    normalized: "Số tài khoản nhận tiền là không một hai ba bốn năm sáu bảy tám chín."
+  - id: interest_8_2
+    category: finance
+    symbolic: "Lãi suất ưu đãi là 8,2% một năm."
+    normalized: "Lãi suất ưu đãi là tám phẩy hai phần trăm một năm."
+  - id: countdown_00_10
+    category: time
+    symbolic: "Đếm ngược còn 00:10 trước khi khởi động."
+    normalized: "Đếm ngược còn không phút mười giây trước khi khởi động."
+  - id: tire_size
+    category: vehicle
+    symbolic: "Lốp xe có kích thước 235/55R19."
+    normalized: "Lốp xe có kích thước hai ba năm trên năm năm R mười chín."
+  - id: mixed_sentence
+    category: mixed
+    symbolic: "Gói bảo hành 5 năm hoặc 160.000km có giá 12.500.000đ."
+    normalized: "Gói bảo hành năm năm hoặc một trăm sáu mươi nghìn ki lô mét có giá mười hai triệu năm trăm nghìn đồng."
