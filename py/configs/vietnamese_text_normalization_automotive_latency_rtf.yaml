@@ -1,0 +1,44 @@
+benchmark:
+  name: vietnamese_text_normalization_automotive_latency_rtf
+  language: vi
+  description: Latency/RTF optimized automotive profile when TTS can use more of the CPU budget.
+
+runtime:
+  onnx_dir: ../assets/onnx
+  voice_style: ../assets/voice_styles/F1.json
+  total_step: 4
+  speed: 1.7
+  intra_op_num_threads: 2
+  inter_op_num_threads: 1
+  execution_mode: sequential
+  enable_cpu_mem_arena: true
+  enable_mem_pattern: true
+  enable_mem_reuse: true
+  disable_prepacking: false
+  allow_spinning: false
+  warmup_runs: 2
+  repeats_per_case: 1
+  save_audio: false
+  output_dir: results/vietnamese_tn_benchmark
+
+metrics:
+  include:
+    - latency_seconds
+    - audio_duration_seconds
+    - rtf
+    - throughput_chars_per_second
+    - throughput_audio_seconds_per_second
+    - cpu_seconds
+    - cpu_utilization_ratio
+    - rss_before_mb
+    - rss_after_mb
+    - rss_delta_mb
+    - cgroup_memory_before_mb
+    - cgroup_memory_after_mb
+    - cgroup_memory_delta_mb
+    - peak_rss_mb
+    - threads_before
+    - threads_after
+    - threads_delta
+
+test_cases_from: vietnamese_text_normalization_benchmark.yaml

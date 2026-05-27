@@ -1,0 +1,12 @@
+.git
+.uv-cache
+assets
+assets.partial.*
+**/.venv
+**/__pycache__
+**/node_modules
+**/results
+**/.pytest_cache
+**/*.pyc
+**/*.onnx
+nodejs/package-lock.json

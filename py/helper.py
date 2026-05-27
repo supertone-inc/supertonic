@@ -319,8 +319,40 @@ def load_text_processor(onnx_dir: str) -> UnicodeProcessor:
     return text_processor
 
 
-def load_text_to_speech(onnx_dir: str, use_gpu: bool = False) -> TextToSpeech:
+def load_text_to_speech(
+    onnx_dir: str,
+    use_gpu: bool = False,
+    intra_op_num_threads: int | None = None,
+    inter_op_num_threads: int | None = None,
+    execution_mode: str = "sequential",
+    enable_cpu_mem_arena: bool = True,
+    enable_mem_pattern: bool = True,
+    enable_mem_reuse: bool = True,
+    disable_prepacking: bool = False,
+    allow_spinning: bool = True,
+) -> TextToSpeech:
     opts = ort.SessionOptions()
+    opts.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
+    opts.execution_mode = (
+        ort.ExecutionMode.ORT_PARALLEL
+        if execution_mode == "parallel"
+        else ort.ExecutionMode.ORT_SEQUENTIAL
+    )
+    opts.enable_cpu_mem_arena = enable_cpu_mem_arena
+    opts.enable_mem_pattern = enable_mem_pattern
+    opts.enable_mem_reuse = enable_mem_reuse
+    if intra_op_num_threads is not None:
+        opts.intra_op_num_threads = intra_op_num_threads
+    if inter_op_num_threads is not None:
+        opts.inter_op_num_threads = inter_op_num_threads
+    opts.add_session_config_entry(
+        "session.intra_op.allow_spinning", "1" if allow_spinning else "0"
+    )
+    opts.add_session_config_entry(
+        "session.inter_op.allow_spinning", "1" if allow_spinning else "0"
+    )
+    if disable_prepacking:
+        opts.add_session_config_entry("session.disable_prepacking", "1")
     if use_gpu:
         raise NotImplementedError("GPU mode is not fully tested")
     else:
