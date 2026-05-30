@@ -97,16 +97,19 @@ def validate_synthesis_inputs(
             f"Number of languages ({len(lang_list)}) must match number of texts ({len(text_list)})"
         )
 
+    resolved_style_count = style_count
+    if style is not None:
+        resolved_style_count = _get_style_count(style)
+        _validate_int_range("style_count", resolved_style_count, 1, MAX_BATCH_SIZE)
+        if style_count is not None:
+            _validate_int_range("style_count", style_count, 1, MAX_BATCH_SIZE)
+            if style_count != resolved_style_count:
+                raise ValueError(
+                    f"style_count ({style_count}) must match style batch dimension ({resolved_style_count})"
+                )
+        style_count = resolved_style_count
     if style_count is not None:
         _validate_int_range("style_count", style_count, 1, MAX_BATCH_SIZE)
-    if style is not None:
-        actual_style_count = _get_style_count(style)
-        if style_count is not None and style_count != actual_style_count:
-            raise ValueError(
-                f"style_count ({style_count}) must match style batch dimension ({actual_style_count})"
-            )
-        style_count = actual_style_count
-    if style_count is not None:
         if style_count != len(text_list):
             raise ValueError(
                 f"Number of style vectors ({style_count}) must match number of texts ({len(text_list)})"
@@ -337,21 +340,13 @@ class TextToSpeech:
         speed: float = 1.05,
         silence_duration: float = 0.3,
     ) -> tuple[np.ndarray, np.ndarray]:
-        validate_synthesis_inputs(
-            [text],
-            [lang],
-            total_step,
-            speed,
-            style=style,
-            max_text_chars=None,
-        )
         max_len = 120 if lang in ("ko", "ja") else 300
         text_list = chunk_text(text, max_len=max_len)
         _validate_text_list(text_list, MAX_TEXT_CHARS, max_batch_size=None)
         wav_cat = None
         dur_cat = None
         for text in text_list:
-            wav, dur_onnx = self._infer_validated(
+            wav, dur_onnx = self._infer(
                 [text], [lang], style, total_step, speed
             )
             if wav_cat is None:
@@ -373,8 +368,7 @@ class TextToSpeech:
         total_step: int,
         speed: float = 1.05,
     ) -> tuple[np.ndarray, np.ndarray]:
-        validate_synthesis_inputs(text_list, lang_list, total_step, speed, style=style)
-        return self._infer_validated(text_list, lang_list, style, total_step, speed)
+        return self._infer(text_list, lang_list, style, total_step, speed)
 
 
 def length_to_mask(lengths: np.ndarray, max_len: Optional[int] = None) -> np.ndarray:
