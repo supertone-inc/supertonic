@@ -3,6 +3,7 @@ import math
 import numbers
 import os
 import time
+from collections.abc import Sequence
 from contextlib import contextmanager
 from typing import Optional
 from unicodedata import normalize
@@ -32,11 +33,12 @@ def _validate_int_range(name: str, value: int, min_value: int, max_value: int) -
 
 
 def _validate_speed(speed: float) -> None:
-    if isinstance(speed, bool) or not isinstance(speed, (int, float)):
+    if isinstance(speed, bool) or not isinstance(speed, numbers.Real):
         raise ValueError("speed must be a number")
-    if not math.isfinite(speed):
+    speed_value = float(speed)
+    if not math.isfinite(speed_value):
         raise ValueError("speed must be finite")
-    if speed < MIN_SPEED or speed > MAX_SPEED:
+    if speed_value < MIN_SPEED or speed_value > MAX_SPEED:
         raise ValueError(f"speed must be between {MIN_SPEED} and {MAX_SPEED}")
 
 
@@ -48,13 +50,25 @@ def _get_style_count(style) -> int:
     return int(shape[0])
 
 
+def _validate_style_count(style_count: int, max_batch_size: Optional[int]) -> None:
+    if max_batch_size is None:
+        if isinstance(style_count, bool) or not isinstance(
+            style_count, numbers.Integral
+        ):
+            raise ValueError("style_count must be an integer")
+        if style_count < 1:
+            raise ValueError("style_count must be at least 1")
+        return
+    _validate_int_range("style_count", style_count, 1, max_batch_size)
+
+
 def _validate_text_list(
-    text_list: list[str],
+    text_list: Sequence[str],
     max_text_chars: Optional[int],
     max_batch_size: Optional[int],
 ) -> None:
     if isinstance(text_list, str) or not isinstance(text_list, (list, tuple)):
-        raise ValueError("text_list must be a list of strings")
+        raise ValueError("text_list must be a list or tuple of strings")
     if not text_list:
         raise ValueError("text_list must contain at least one text")
     if max_batch_size is not None and len(text_list) > max_batch_size:
@@ -70,8 +84,8 @@ def _validate_text_list(
 
 
 def validate_synthesis_inputs(
-    text_list: list[str],
-    lang_list: list[str],
+    text_list: Sequence[str],
+    lang_list: Sequence[str],
     total_step: int,
     speed: float,
     *,
@@ -100,16 +114,16 @@ def validate_synthesis_inputs(
     resolved_style_count = style_count
     if style is not None:
         resolved_style_count = _get_style_count(style)
-        _validate_int_range("style_count", resolved_style_count, 1, MAX_BATCH_SIZE)
+        _validate_style_count(resolved_style_count, max_batch_size)
         if style_count is not None:
-            _validate_int_range("style_count", style_count, 1, MAX_BATCH_SIZE)
+            _validate_style_count(style_count, max_batch_size)
             if style_count != resolved_style_count:
                 raise ValueError(
                     f"style_count ({style_count}) must match style batch dimension ({resolved_style_count})"
                 )
         style_count = resolved_style_count
     if style_count is not None:
-        _validate_int_range("style_count", style_count, 1, MAX_BATCH_SIZE)
+        _validate_style_count(style_count, max_batch_size)
         if style_count != len(text_list):
             raise ValueError(
                 f"Number of style vectors ({style_count}) must match number of texts ({len(text_list)})"
@@ -285,8 +299,8 @@ class TextToSpeech:
 
     def _infer(
         self,
-        text_list: list[str],
-        lang_list: list[str],
+        text_list: Sequence[str],
+        lang_list: Sequence[str],
         style: Style,
         total_step: int,
         speed: float = 1.05,
@@ -296,8 +310,8 @@ class TextToSpeech:
 
     def _infer_validated(
         self,
-        text_list: list[str],
-        lang_list: list[str],
+        text_list: Sequence[str],
+        lang_list: Sequence[str],
         style: Style,
         total_step: int,
         speed: float = 1.05,
@@ -362,8 +376,8 @@ class TextToSpeech:
 
     def batch(
         self,
-        text_list: list[str],
-        lang_list: list[str],
+        text_list: Sequence[str],
+        lang_list: Sequence[str],
         style: Style,
         total_step: int,
         speed: float = 1.05,

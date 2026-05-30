@@ -140,6 +140,6 @@ This will:
 - **Input Bounds**: Batch mode accepts up to 8 texts, batch items and generated chunks are limited to 5,000 characters each, `--total-step` is limited to 1-50, `--speed` to 0.5-2.0, and `--n-test` to 1-10
 - **Batch Processing**: The number of `--voice-style`, `--text`, and `--lang` entries must match
 - **Multilingual Support**: Use `--lang` to specify language(s). Available: 31 languages; see the main README for the full list
-- **Long-Form Inference**: Without `--batch` flag, valid inputs are automatically chunked and combined into a single audio file with natural pauses
+- **Long-Form Inference**: Without `--batch` flag, raw text can exceed 5,000 characters; generated chunks are validated individually and combined into a single audio file with natural pauses
 - **Quality vs Speed**: Higher `--total-step` values produce better quality but take longer
 - **GPU Support**: GPU mode is not supported yet

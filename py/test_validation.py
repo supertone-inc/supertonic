@@ -75,6 +75,24 @@ class ValidateSynthesisInputsTests(unittest.TestCase):
             n_test=np.int64(4),
         )
 
+    def test_accepts_numpy_real_speed_scalar(self):
+        validate_synthesis_inputs(
+            ["hello"],
+            ["en"],
+            total_step=8,
+            speed=np.float32(1.05),
+            style_count=1,
+        )
+
+    def test_accepts_tuple_text_and_language_sequences(self):
+        validate_synthesis_inputs(
+            ("hello",),
+            ("en",),
+            total_step=8,
+            speed=1.05,
+            style_count=1,
+        )
+
     def test_accepts_matching_style_and_style_count(self):
         validate_synthesis_inputs(
             ["hello"],
@@ -124,6 +142,27 @@ class ValidateSynthesisInputsTests(unittest.TestCase):
         lang_list = ["en"] * (MAX_BATCH_SIZE + 1)
         with self.assertRaisesRegex(ValueError, "batch size"):
             validate_synthesis_inputs(text_list, lang_list, 8, 1.05)
+
+    def test_style_count_respects_custom_batch_size(self):
+        with self.assertRaisesRegex(ValueError, "style_count"):
+            validate_synthesis_inputs(
+                ["hello"],
+                ["en"],
+                8,
+                1.05,
+                style_count=2,
+                max_batch_size=1,
+            )
+
+    def test_style_count_allows_no_batch_size_cap(self):
+        validate_synthesis_inputs(
+            ["hello", "bonjour"],
+            ["en", "fr"],
+            8,
+            1.05,
+            style_count=2,
+            max_batch_size=None,
+        )
 
     def test_rejects_mismatched_language_count(self):
         with self.assertRaisesRegex(ValueError, "languages"):
