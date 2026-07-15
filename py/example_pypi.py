@@ -14,3 +14,4 @@ wav, duration = tts.synthesize(text, voice_style=style)
 
 # Save to file
 tts.save_audio(wav, "results/example_pypi.wav")
+print(f"Generated {duration[0]:.2f}s of audio")

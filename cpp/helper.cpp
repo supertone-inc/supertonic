@@ -12,7 +12,7 @@
 using json = nlohmann::json;
 
 // Available languages for multilingual TTS
-const std::vector<std::string> AVAILABLE_LANGS = {"en", "ko", "ja", "ar", "bg", "cs", "da", "de", "el", "es", "et", "fi", "fr", "hi", "hr", "hu", "id", "it", "lt", "lv", "nl", "pl", "pt", "ro", "ru", "sk", "sl", "sv", "tr", "uk", "vi"};
+const std::vector<std::string> AVAILABLE_LANGS = {"en", "ko", "ja", "ar", "bg", "cs", "da", "de", "el", "es", "et", "fi", "fr", "hi", "hr", "hu", "id", "it", "lt", "lv", "nl", "pl", "pt", "ro", "ru", "sk", "sl", "sv", "tr", "uk", "vi", "na"};
 
 // Global tensor buffers for memory management
 static std::vector<std::vector<float>> g_tensor_buffers_float;

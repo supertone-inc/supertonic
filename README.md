@@ -1,26 +1,53 @@
 # Supertonic — Lightning Fast, On-Device, Accurate TTS
 
-[![v3 Demo](https://img.shields.io/badge/🤗%20v3-Demo-yellow)](https://huggingface.co/spaces/Supertone/supertonic-3)
-[![v3 Models](https://img.shields.io/badge/🤗%20v3-Models-blue)](https://huggingface.co/Supertone/supertonic-3)
-[![v2 Branch](https://img.shields.io/badge/v2-release%2Fsupertonic--2-lightgrey)](https://github.com/supertone-inc/supertonic/tree/release/supertonic-2)
-[![v1 Demo](https://img.shields.io/badge/🤗%20v1%20(old)-Demo-lightgrey)](https://huggingface.co/spaces/Supertone/supertonic#interactive-demo)
-[![v1 Models](https://img.shields.io/badge/🤗%20v1%20(old)-Models-lightgrey)](https://huggingface.co/Supertone/supertonic)
-
 <p align="center">
   <img src="img/Supertonic3_HeroImage.png" alt="Supertonic 3 Banner">
 </p>
 
-**Supertonic** is a lightning-fast, on-device text-to-speech system designed for local inference with minimal overhead. Powered by ONNX Runtime, it runs entirely on your device—no cloud, no API calls, no privacy concerns.
+[![GitHub | Official Repo](https://img.shields.io/badge/GitHub-Official%20Repo-black?logo=github)](https://github.com/supertone-inc/supertonic)
+[![Models](https://img.shields.io/badge/🤗%20Hugging%20Face-Models-blue)](https://huggingface.co/Supertone/supertonic-3)
+[![Runs Locally via WebGPU](https://img.shields.io/badge/🤗%20Hugging%20Face-Demo-yellow)](https://huggingface.co/spaces/Supertone/supertonic-3)
+[![DemoPage | Audio Samples](https://img.shields.io/badge/DemoPage-Audio%20Samples-F5D90A?labelColor=0B0C0E)](https://supertonic3.github.io/)
+[![Voice Builder | Cloning Demo](https://img.shields.io/badge/Voice%20Builder-Cloning%20Demo-3457D5?logo=soundcloud&logoColor=white)](https://supertonic.supertone.ai/voice-builder)
+[![GitHub | Python Package](https://img.shields.io/badge/GitHub-Python%20Package-black?logo=github)](https://github.com/supertone-inc/supertonic-py)
+[![Docs | Python PyPI](https://img.shields.io/badge/Docs-Python%20PyPI-blue?logo=readthedocs&logoColor=white)](https://supertone-inc.github.io/supertonic-py/)
+
+<p align="center">
+  <a href="https://trendshift.io/repositories/15657" target="_blank"><img src="https://trendshift.io/api/badge/repositories/15657" alt="supertone-inc%2Fsupertonic | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
+</p>
+
+**Supertonic** is a lightning-fast, on-device multilingual text-to-speech system designed for local inference with minimal overhead. Powered by ONNX Runtime, it runs entirely on your device—no cloud, no API calls, no privacy concerns.
+
+### ✨ Highlights
+
+- ⚡ **Blazingly Fast** — Low-latency, real-time synthesis across desktop, browser, mobile, and edge — fast enough to turn an entire webpage into audio in under a second
+- 🌍 **31-Language Multilingual** — Synthesize directly from text across 31 languages, or pass `lang="na"` to let Supertonic process the text language-agnostically when you don't know the input language — no separate language adapters needed
+- 🪶 **99M-Parameter Open-Weight Model** — A compact, fully open-weight checkpoint — a fraction of the size of 0.7B–2B class open TTS systems — for smaller downloads, faster cold starts, and lower memory footprint
+- 📱 **Edge-Device Ready** — Runs locally on desktop, mobile, browsers, and resource-constrained hardware like Raspberry Pi or e-readers, with zero network dependency, complete privacy, and no GPU required
+- 🔊 **44.1kHz High-Quality Audio** — Outputs studio-grade 44.1kHz 16-bit WAV directly, ready for production playback without any external upsampler
+- 🎭 **Expression Tags** — 10 inline tags (e.g. `<laugh>`, `<breath>`, `<sigh>`) bring natural human nuance into generated speech without prompt engineering or reference audio
+- 🛠️ **Multi-Runtime SDKs** — Ready-to-use examples through ONNX Runtime across Python, Node.js, Browser (WebGPU), Java, C++, C#, Go, Swift, iOS, Rust, and Flutter
+
+### 🌍 Supported Languages (31)
+
+Arabic (`ar`), Bulgarian (`bg`), Croatian (`hr`), Czech (`cs`), Danish (`da`), Dutch (`nl`), English (`en`), Estonian (`et`), Finnish (`fi`), French (`fr`), German (`de`), Greek (`el`), Hindi (`hi`), Hungarian (`hu`), Indonesian (`id`), Italian (`it`), Japanese (`ja`), Korean (`ko`), Latvian (`lv`), Lithuanian (`lt`), Polish (`pl`), Portuguese (`pt`), Romanian (`ro`), Russian (`ru`), Slovak (`sk`), Slovenian (`sl`), Spanish (`es`), Swedish (`sv`), Turkish (`tr`), Ukrainian (`uk`), Vietnamese (`vi`)
+
+> **Not sure which language your text is in?** Pass `lang="na"` and Supertonic will handle the input in a language-agnostic way — no explicit language tag required.
 
 ### 📰 Update News
 
+- **2026.05.20** - **Supertonic 3** is now officially supported in **[Supertone Play](https://play.supertone.ai/)** and the **[Supertone API](https://www.supertone.ai/ko/api)**. Visit Play or the API if you want a managed content creation workflow with diverse preset voices and zero-shot voice cloning.
+- **2026.05.18** - Python SDK v1.3.1 adds **`supertonic serve`**, a local HTTP server with native `/v1/tts` and OpenAI-compatible `/v1/audio/speech` endpoints. See the [serve documentation](https://supertone-inc.github.io/supertonic-py/cli/serve/).
+- **2026.05.18** - **[Voice Builder](https://supertonic.supertone.ai/voice-builder)** now supports **Supertonic 3**. Create a permanent custom voice profile for Supertonic and download version-specific JSON files for both Supertonic 2 and Supertonic 3. If you already created a Supertonic 2 voice, the matching Supertonic 3 JSON is now available from [My Page](https://supertonic.supertone.ai/my-page).
 - **2026.04.29** - 🎉 **Supertonic 3** released with **31-language support**, improved reading accuracy, fewer repeat/skip failures, and v2-compatible public ONNX assets. [Demo](https://huggingface.co/spaces/Supertone/supertonic-3) | [Models](https://huggingface.co/Supertone/supertonic-3)
-- **2026.01.22** - **[Voice Builder](https://supertonic.supertone.ai/voice_builder)** is now live! Turn your voice into a deployable, edge-native TTS with permanent ownership.
+- **2026.01.22** - **[Voice Builder](https://supertonic.supertone.ai/voice-builder)** is now live! Turn your voice into a deployable, edge-native TTS with permanent ownership.
 - **2026.01.06** - 🎉 **Supertonic 2** released with 5-language support. The v2 code path is preserved on the [`release/supertonic-2`](https://github.com/supertone-inc/supertonic/tree/release/supertonic-2) branch.
 - **2025.12.10** - Added `supertonic` PyPI package! Install via `pip install supertonic`. For details, visit [supertonic-py documentation](https://supertone-inc.github.io/supertonic-py)
 - **2025.12.10** - Added [6 new voice styles](https://huggingface.co/Supertone/supertonic/tree/b10dbaf18b316159be75b34d24f740008fddd381) (M3, M4, M5, F3, F4, F5). See [Voices](https://supertone-inc.github.io/supertonic-py/voices/) for details
 - **2025.12.08** - Optimized ONNX models via [OnnxSlim](https://github.com/inisis/OnnxSlim) now available on [Hugging Face Models](https://huggingface.co/Supertone/supertonic)
 - **2025.11.24** - Added Flutter SDK support with macOS compatibility
+
+---
 
 ## Quick Start
 
@@ -40,12 +67,35 @@ tts = TTS(auto_download=True)
 
 style = tts.get_voice_style(voice_name="M1")
 
-text = "A gentle breeze moved through the open window while everyone listened to the story."
-wav, duration = tts.synthesize(text, voice_style=style, lang="en")
+text = "Supertonic is a lightning fast, on-device TTS system."
+
+wav, duration = tts.synthesize(
+    text=text,
+    lang="en",                      # Language code (e.g., "en", "ko", "na" for language-agnostic)
+    voice_style=style,              # Voice style object
+    total_steps=8,                  # Quality: 5 (low) to 12 (high), default 8 (medium)
+    speed=1.05,                     # Speed: 0.7 (slow) to 2.0 (fast)
+)
+# wav: numpy array of shape (1, num_samples,) with dtype=np.float32, sampled at 44100 Hz
+# duration: numpy array of shape (1,) containing the duration of the generated audio in seconds
 
 tts.save_audio(wav, "output.wav")
-print(f"Generated {duration:.2f}s of audio")
+# import soundfile as sf
+# sf.write("output.wav", wav.squeeze(), 44100)
+
+print(f"Generated {duration[0]:.2f}s of audio")
 ```
+
+### Local HTTP Server
+
+The Python SDK can also run Supertonic as a local HTTP service. This is useful when you want to call Supertonic from tools that already speak HTTP, such as local agents, browser extensions, Electron apps, workflow automation tools, or OpenAI-compatible audio clients.
+
+```bash
+pip install 'supertonic[serve]'
+supertonic serve --host 127.0.0.1 --port 7788
+```
+
+Once running, use the native `POST /v1/tts` endpoint or the OpenAI-compatible `POST /v1/audio/speech` endpoint. The server also exposes interactive OpenAPI docs at `http://127.0.0.1:7788/docs`. See the [supertonic-py serve guide](https://supertone-inc.github.io/supertonic-py/cli/serve/) for request examples, batch synthesis, and custom Voice Builder JSON import.
 
 ## Getting Started
 
@@ -157,13 +207,14 @@ In Xcode: Targets → ExampleiOSApp → Signing: select your Team, then choose y
 
 </details>
 
+---
 
 ### Technical Details
 
 - **Runtime**: ONNX Runtime for cross-platform inference
 - **Browser Support**: onnxruntime-web for client-side inference
 - **Batch Processing**: Supports batch inference for improved throughput
-- **Audio Output**: Outputs 16-bit WAV files
+- **Audio Output**: Outputs 44.1kHz 16-bit WAV files
 
 ## Performance Highlights
 
@@ -175,7 +226,40 @@ Supertonic 3 is designed for practical on-device inference: compact enough to ru
   <img src="img/metrics/s3_vs_measured_wer_range_voxcpm2.png" alt="Supertonic 3 reading accuracy compared with measured model ranges and VoxCPM2">
 </p>
 
-Across measured languages, Supertonic 3 stays within a competitive WER/CER range against much larger open TTS models such as VoxCPM2, while preserving a lightweight on-device deployment path. Asterisked languages use CER; the others use WER.
+Evaluated on the **[Minimax-MLS-test](https://huggingface.co/datasets/MiniMaxAI/TTS-MLS-Test) benchmark**, Supertonic 3 stays within a competitive WER/CER range against much larger open TTS models such as VoxCPM2, while preserving a lightweight on-device deployment path. Asterisked languages (`*`) use CER; the others use WER.
+
+<details>
+<summary><b>📊 Detailed per-language results (WER / CER*)</b></summary>
+
+<br>
+
+| Lang | VoxCPM2 | OmniVoice | Qwen3-TTS | Supertonic 2 | **Supertonic 3** |
+|---|:---:|:---:|:---:|:---:|:---:|
+| arabic\*   | 4.14  | 1.74  | —    | —    | **2.14**  |
+| czech      | 23.73 | 2.40  | —    | —    | **3.02**  |
+| dutch      | 0.84  | 0.77  | —    | —    | **1.47**  |
+| english    | 2.11  | 2.02  | 2.25 | 2.52 | **2.06**  |
+| finnish    | 2.29  | 3.94  | —    | —    | **5.40**  |
+| french     | 4.41  | 4.74  | 3.82 | 5.09 | **4.89**  |
+| german     | 0.85  | 0.96  | 0.52 | —    | **0.86**  |
+| greek      | 3.22  | 2.96  | —    | —    | **3.54**  |
+| hindi\*    | 5.85  | 5.14  | —    | —    | **5.34**  |
+| indonesian | 1.25  | 1.67  | —    | —    | **1.34**  |
+| italian    | 1.74  | 1.29  | 1.40 | —    | **1.75**  |
+| japanese\* | 3.35  | 3.81  | 3.67 | —    | **4.61**  |
+| korean\*   | 4.70  | 3.22  | 4.07 | 3.65 | **3.26**  |
+| polish     | 1.30  | 0.64  | —    | —    | **1.63**  |
+| portuguese | 1.74  | 1.40  | 1.21 | 1.52 | **2.48**  |
+| romanian   | 22.39 | 2.29  | —    | —    | **2.19**  |
+| russian    | 3.31  | 4.53  | 4.48 | —    | **3.99**  |
+| spanish    | 1.34  | 0.99  | 0.75 | 1.81 | **1.13**  |
+| turkish    | 0.88  | 2.18  | —    | —    | **1.00**  |
+| ukrainian  | 5.85  | 0.71  | —    | —    | **1.23**  |
+| vietnamese | 1.48  | 0.79  | —    | —    | **4.49**  |
+
+> Lower is better. `*` indicates CER (character error rate); all other rows use WER (word error rate). Dashes (`—`) indicate the model does not officially support the language or no result is available.
+
+</details>
 
 ### Supertonic 2 to Supertonic 3
 
@@ -201,6 +285,12 @@ Supertonic 3 runs fast on CPU, even compared with larger baselines measured on A
 
 At about 99M parameters across the public ONNX assets, Supertonic 3 is much smaller than 0.7B to 2B class open TTS systems. The smaller model size is a practical advantage for download size, startup time, and on-device inference.
 
+## Voice Cloning
+
+This open-weight repository focuses on fixed-voice, local TTS and does not include an official voice-cloning pipeline. If you want to bring your own voice to local Supertonic deployment, [Voice Builder](https://supertonic.supertone.ai/voice-builder) turns a short reference recording into version-specific JSON files for Supertonic 2 and Supertonic 3, so the same custom voice can move with you across supported Supertonic versions.
+
+For a managed creation workflow, **Supertonic 3 is now officially available in [Supertone Play](https://play.supertone.ai/) and the [Supertone API](https://www.supertone.ai/ko/api)**. Use them when you want hosted content creation tools, diverse commercially usable preset voices, zero-shot voice cloning, or API-based integration without managing local model files. You can also listen to Supertonic 3 zero-shot samples on the [official showcase](https://supertonic3.github.io/).
+
 ## Demo
 
 > **Try it now**: Experience Supertonic in your browser with our [**Interactive Demo**](https://huggingface.co/spaces/Supertone/supertonic-3), or get started with pre-trained models from [**Hugging Face Hub**](https://huggingface.co/Supertone/supertonic-3)
@@ -223,29 +313,7 @@ Turns any webpage into audio in under one second, delivering lightning-fast, on-
 
 https://github.com/user-attachments/assets/cc8a45fc-5c3e-4b2c-8439-a14c3d00d91c
 
-## Why Supertonic?
-
-- **Blazingly Fast**: Optimized for low-latency, on-device speech generation across desktop, browser, and edge deployments
-- **Lightweight**: Compact ONNX assets designed for efficient local execution
-- **On-Device Capable**: Complete privacy and zero network dependency
-- **Accurate Reading**: Improved reading stability with fewer repeat and skip failures
-- **Expressive Tags**: Supports simple expression tags such as `<laugh>`, `<breath>`, and `<sigh>`
-- **Flexible Deployment**: Ready-to-use examples across Python, JavaScript, browser, mobile, and native runtimes
-
-## Language Support
-
-Supertonic 3 supports 31 languages:
-
-| Code | Language | Code | Language | Code | Language | Code | Language |
-|------|----------|------|----------|------|----------|------|----------|
-| `en` | English | `ko` | Korean | `ja` | Japanese | `ar` | Arabic |
-| `bg` | Bulgarian | `cs` | Czech | `da` | Danish | `de` | German |
-| `el` | Greek | `es` | Spanish | `et` | Estonian | `fi` | Finnish |
-| `fr` | French | `hi` | Hindi | `hr` | Croatian | `hu` | Hungarian |
-| `id` | Indonesian | `it` | Italian | `lt` | Lithuanian | `lv` | Latvian |
-| `nl` | Dutch | `pl` | Polish | `pt` | Portuguese | `ro` | Romanian |
-| `ru` | Russian | `sk` | Slovak | `sl` | Slovenian | `sv` | Swedish |
-| `tr` | Turkish | `uk` | Ukrainian | `vi` | Vietnamese | | |
+## Programming Language Support
 
 We provide ready-to-use TTS inference examples across multiple ecosystems:
 
@@ -368,10 +436,24 @@ Supertonic is designed to handle complex, real-world text inputs that contain na
 | **VoiceChat** | On-device voice-to-voice LLM chatbot in the browser | [Demo](https://huggingface.co/spaces/RickRossTN/ai-voice-chat) · [GitHub](https://github.com/irelate-ai/voice-chat) |
 | **OmniAvatar** | Talking avatar video generator from photo + speech | [Demo](https://huggingface.co/spaces/alexnasa/OmniAvatar) |
 | **CopiloTTS** | Kotlin Multiplatform TTS SDK via ONNX Runtime | [GitHub](https://github.com/sigmadeltasoftware/CopiloTTS) |
+| **Aftertone** | Local post-reply TTS for Cursor & Claude Code (Supertonic 3 ONNX, on-device daemon) | [GitHub](https://github.com/omarelkhal/aftertone) · [Demo](https://github.com/omarelkhal/aftertone/releases/download/demo-asset/demo.mp4) |
 | **Voice Mixer** | PyQt5 tool for mixing and modifying voice styles | [GitHub](https://github.com/Topping1/Supertonic-Voice-Mixer) |
 | **Supertonic MNN** | Lightweight library based on MNN (fp32/fp16/int8) | [GitHub](https://github.com/vra/supertonic-mnn) · [PyPI](https://pypi.org/project/supertonic-mnn/) |
 | **Transformers.js** | Hugging Face's JS library with Supertonic support | [GitHub PR](https://github.com/huggingface/transformers.js/pull/1459) · [Demo](https://huggingface.co/spaces/webml-community/Supertonic-TTS-WebGPU) |
 | **Pinokio** | 1-click localhost cloud for Mac, Windows, and Linux | [Pinokio](https://pinokio.co/) · [GitHub](https://github.com/SUP3RMASS1VE/SuperTonic-TTS) |
+
+## Models & Versions
+
+|  | **Supertonic 3** | Supertonic 2 | Supertonic 1 |
+|---|:---:|:---:|:---:|
+| **Status** | 🟢 Latest | Stable | Legacy |
+| **Parameters** | ~99M | ~66M | ~66M |
+| **Languages** | 31 | 5 | 1 (en) |
+| **Expression Tags** | ✅ 10 tags | — | — |
+| **Code** | [main](https://github.com/supertone-inc/supertonic) | [release/supertonic-2](https://github.com/supertone-inc/supertonic/tree/release/supertonic-2) | — |
+| **Weights** | [🤗 HF](https://huggingface.co/Supertone/supertonic-3) | [🤗 HF](https://huggingface.co/Supertone/supertonic-2) | [🤗 HF](https://huggingface.co/Supertone/supertonic) |
+| **Interactive Demo** | [🤗 Space](https://huggingface.co/spaces/Supertone/supertonic-3) | [🤗 Space](https://huggingface.co/spaces/Supertone/supertonic-2) | [🤗 Space](https://huggingface.co/spaces/Supertone/supertonic#interactive-demo) |
+| **Audio Samples** | [DemoPage](https://supertonic3.github.io/) | — | [DemoPage](https://supertonictts.github.io/) |
 
 ## Citation
 
@@ -416,6 +498,22 @@ This paper describes the self-purification technique for training flow matching 
   journal={arXiv preprint arXiv:2509.19091},
   year={2025},
   url={https://arxiv.org/abs/2509.19091}
+}
+```
+
+### RobustSpeechFlow: Learning Robust Text-to-Speech Trajectories via Augmentation-based Contrastive Flow Matching
+
+This paper describes the RobustSpeechFlow technique for improving the robustness and quality of text-to-speech generation by optimizing flow-matching trajectories against data variability
+
+```bibtex
+@misc{yang2026robustspeechflowlearningrobusttexttospeech,
+      title={RobustSpeechFlow: Learning Robust Text-to-Speech Trajectories via Augmentation-based Contrastive Flow Matching}, 
+      author={Jinhyeok Yang and Hyeongju Kim and Yechan Yu and Joon Byun and Frederik Bous and Juheon Lee},
+      year={2026},
+      eprint={2605.22083},
+      archivePrefix={arXiv},
+      primaryClass={cs.SD},
+      url={https://arxiv.org/abs/2605.22083}, 
 }
 ```
 

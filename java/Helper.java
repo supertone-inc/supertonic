@@ -22,7 +22,7 @@ import java.util.regex.Matcher;
  * Available languages for multilingual TTS
  */
 class Languages {
-    public static final List<String> AVAILABLE = Arrays.asList("en", "ko", "ja", "ar", "bg", "cs", "da", "de", "el", "es", "et", "fi", "fr", "hi", "hr", "hu", "id", "it", "lt", "lv", "nl", "pl", "pt", "ro", "ru", "sk", "sl", "sv", "tr", "uk", "vi");
+    public static final List<String> AVAILABLE = Arrays.asList("en", "ko", "ja", "ar", "bg", "cs", "da", "de", "el", "es", "et", "fi", "fr", "hi", "hr", "hu", "id", "it", "lt", "lv", "nl", "pl", "pt", "ro", "ru", "sk", "sl", "sv", "tr", "uk", "vi", "na");
     
     public static boolean isValid(String lang) {
         return AVAILABLE.contains(lang);

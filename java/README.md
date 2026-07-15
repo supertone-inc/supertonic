@@ -120,6 +120,7 @@ java -jar target/tts-example.jar --total-step 10 --text "Your custom text here"
 | `--use-gpu` | flag | False | Use GPU for inference (default: CPU) |
 | `--onnx-dir` | str | `../assets/onnx` | Path to ONNX model directory |
 | `--total-step` | int | 8 | Number of denoising steps (higher = better quality, slower) |
+| `--speed` | float | 1.05 | Speech speed factor (higher = faster, lower = slower) |
 | `--n-test` | int | 4 | Number of times to generate each sample |
 | `--voice-style` | str+ | `../assets/voice_styles/M1.json` | Voice style file path(s), comma-separated |
 | `--text` | str+ | (long default text) | Text(s) to synthesize, pipe-separated |

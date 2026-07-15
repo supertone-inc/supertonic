@@ -35,7 +35,8 @@ final class TTSService {
         case tr = "tr"
         case uk = "uk"
         case vi = "vi"
-        
+        case na = "na"
+
         var displayName: String {
             switch self {
             case .en: return "English"
@@ -69,6 +70,7 @@ final class TTSService {
             case .tr: return "Turkish"
             case .uk: return "Ukrainian"
             case .vi: return "Vietnamese"
+            case .na: return "Auto (language-agnostic)"
             }
         }
     }
