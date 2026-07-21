@@ -162,10 +162,9 @@ class TextToSpeech:
         self, duration: np.ndarray
     ) -> tuple[np.ndarray, np.ndarray]:
         bsz = len(duration)
-        wav_len_max = duration.max() * self.sample_rate
         wav_lengths = (duration * self.sample_rate).astype(np.int64)
         chunk_size = self.base_chunk_size * self.chunk_compress_factor
-        latent_len = ((wav_len_max + chunk_size - 1) / chunk_size).astype(np.int32)
+        latent_len = int((wav_lengths.max() + chunk_size - 1) // chunk_size)
         latent_dim = self.ldim * self.chunk_compress_factor
         noisy_latent = np.random.randn(bsz, latent_dim, latent_len).astype(np.float32)
         latent_mask = get_latent_mask(
