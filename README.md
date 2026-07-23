@@ -11,6 +11,8 @@
 >
 > Thank you to everyone who has used, contributed to, and supported Supertonic.
 
+English | [简体中文](README.zh-CN.md)
+
 <p align="center">
   <img src="img/Supertonic3_HeroImage.png" alt="Supertonic 3 Banner">
 </p>
