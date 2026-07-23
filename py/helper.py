@@ -1,6 +1,9 @@
 import json
+import math
+import numbers
 import os
 import time
+from collections.abc import Sequence
 from contextlib import contextmanager
 from typing import Optional
 from unicodedata import normalize
@@ -11,6 +14,126 @@ import onnxruntime as ort
 import re
 
 AVAILABLE_LANGS = ["en", "ko", "ja", "ar", "bg", "cs", "da", "de", "el", "es", "et", "fi", "fr", "hi", "hr", "hu", "id", "it", "lt", "lv", "nl", "pl", "pt", "ro", "ru", "sk", "sl", "sv", "tr", "uk", "vi", "na"]
+
+MAX_TEXT_CHARS = 5000
+MAX_BATCH_SIZE = 8
+MIN_TOTAL_STEP = 1
+MAX_TOTAL_STEP = 50
+MIN_SPEED = 0.5
+MAX_SPEED = 2.0
+MIN_N_TEST = 1
+MAX_N_TEST = 10
+
+
+def _validate_int_range(name: str, value: int, min_value: int, max_value: int) -> None:
+    if isinstance(value, bool) or not isinstance(value, numbers.Integral):
+        raise ValueError(f"{name} must be an integer")
+    if value < min_value or value > max_value:
+        raise ValueError(f"{name} must be between {min_value} and {max_value}")
+
+
+def _validate_speed(speed: float) -> None:
+    if isinstance(speed, bool) or not isinstance(speed, numbers.Real):
+        raise ValueError("speed must be a number")
+    speed_value = float(speed)
+    if not math.isfinite(speed_value):
+        raise ValueError("speed must be finite")
+    if speed_value < MIN_SPEED or speed_value > MAX_SPEED:
+        raise ValueError(f"speed must be between {MIN_SPEED} and {MAX_SPEED}")
+
+
+def _get_style_count(style) -> int:
+    ttl = getattr(style, "ttl", None)
+    shape = getattr(ttl, "shape", None)
+    if shape is None or len(shape) == 0:
+        raise ValueError("style must contain a ttl tensor with a batch dimension")
+    return int(shape[0])
+
+
+def _validate_style_count(style_count: int, max_batch_size: Optional[int]) -> None:
+    if max_batch_size is None:
+        if isinstance(style_count, bool) or not isinstance(
+            style_count, numbers.Integral
+        ):
+            raise ValueError("style_count must be an integer")
+        if style_count < 1:
+            raise ValueError("style_count must be at least 1")
+        return
+    _validate_int_range("style_count", style_count, 1, max_batch_size)
+
+
+def _validate_text_list(
+    text_list: Sequence[str],
+    max_text_chars: Optional[int],
+    max_batch_size: Optional[int],
+) -> None:
+    if isinstance(text_list, str) or not isinstance(text_list, (list, tuple)):
+        raise ValueError("text_list must be a list or tuple of strings")
+    if not text_list:
+        raise ValueError("text_list must contain at least one text")
+    if max_batch_size is not None and len(text_list) > max_batch_size:
+        raise ValueError(f"batch size must be at most {max_batch_size}")
+
+    for i, text in enumerate(text_list):
+        if not isinstance(text, str):
+            raise ValueError(f"text_list[{i}] must be a string")
+        if not text.strip():
+            raise ValueError(f"text_list[{i}] must not be blank")
+        if max_text_chars is not None and len(text) > max_text_chars:
+            raise ValueError(f"text_list[{i}] must be at most {max_text_chars} characters")
+
+
+def validate_synthesis_inputs(
+    text_list: Sequence[str],
+    lang_list: Sequence[str],
+    total_step: int,
+    speed: float,
+    *,
+    style=None,
+    style_count: Optional[int] = None,
+    n_test: Optional[int] = None,
+    max_text_chars: Optional[int] = MAX_TEXT_CHARS,
+    max_batch_size: Optional[int] = MAX_BATCH_SIZE,
+) -> None:
+    """Validate synthesis inputs before expensive ONNX inference work starts."""
+    _validate_int_range("total_step", total_step, MIN_TOTAL_STEP, MAX_TOTAL_STEP)
+    _validate_speed(speed)
+
+    if n_test is not None:
+        _validate_int_range("n_test", n_test, MIN_N_TEST, MAX_N_TEST)
+
+    _validate_text_list(text_list, max_text_chars, max_batch_size)
+
+    if isinstance(lang_list, str) or not isinstance(lang_list, (list, tuple)):
+        raise ValueError("lang_list must be a list of language codes")
+    if len(lang_list) != len(text_list):
+        raise ValueError(
+            f"Number of languages ({len(lang_list)}) must match number of texts ({len(text_list)})"
+        )
+
+    resolved_style_count = style_count
+    if style is not None:
+        resolved_style_count = _get_style_count(style)
+        _validate_style_count(resolved_style_count, max_batch_size)
+        if style_count is not None:
+            _validate_style_count(style_count, max_batch_size)
+            if style_count != resolved_style_count:
+                raise ValueError(
+                    f"style_count ({style_count}) must match style batch dimension ({resolved_style_count})"
+                )
+        style_count = resolved_style_count
+    if style_count is not None:
+        _validate_style_count(style_count, max_batch_size)
+        if style_count != len(text_list):
+            raise ValueError(
+                f"Number of style vectors ({style_count}) must match number of texts ({len(text_list)})"
+            )
+
+    for i, lang in enumerate(lang_list):
+        if not isinstance(lang, str):
+            raise ValueError(f"lang_list[{i}] must be a string")
+        if lang not in AVAILABLE_LANGS:
+            raise ValueError(f"Invalid language: {lang}")
 
 
 class UnicodeProcessor:
@@ -176,15 +299,23 @@ class TextToSpeech:
 
     def _infer(
         self,
-        text_list: list[str],
-        lang_list: list[str],
+        text_list: Sequence[str],
+        lang_list: Sequence[str],
         style: Style,
         total_step: int,
         speed: float = 1.05,
     ) -> tuple[np.ndarray, np.ndarray]:
-        assert (
-            len(text_list) == style.ttl.shape[0]
-        ), "Number of texts must match number of style vectors"
+        validate_synthesis_inputs(text_list, lang_list, total_step, speed, style=style)
+        return self._infer_validated(text_list, lang_list, style, total_step, speed)
+
+    def _infer_validated(
+        self,
+        text_list: Sequence[str],
+        lang_list: Sequence[str],
+        style: Style,
+        total_step: int,
+        speed: float = 1.05,
+    ) -> tuple[np.ndarray, np.ndarray]:
         bsz = len(text_list)
         text_ids, text_mask = self.text_processor(text_list, lang_list)
         dur_onnx, *_ = self.dp_ort.run(
@@ -223,15 +354,15 @@ class TextToSpeech:
         speed: float = 1.05,
         silence_duration: float = 0.3,
     ) -> tuple[np.ndarray, np.ndarray]:
-        assert (
-            style.ttl.shape[0] == 1
-        ), "Single speaker text to speech only supports single style"
         max_len = 120 if lang in ("ko", "ja") else 300
         text_list = chunk_text(text, max_len=max_len)
+        _validate_text_list(text_list, MAX_TEXT_CHARS, max_batch_size=None)
         wav_cat = None
         dur_cat = None
         for text in text_list:
-            wav, dur_onnx = self._infer([text], [lang], style, total_step, speed)
+            wav, dur_onnx = self._infer(
+                [text], [lang], style, total_step, speed
+            )
             if wav_cat is None:
                 wav_cat = wav
                 dur_cat = dur_onnx
@@ -245,8 +376,8 @@ class TextToSpeech:
 
     def batch(
         self,
-        text_list: list[str],
-        lang_list: list[str],
+        text_list: Sequence[str],
+        lang_list: Sequence[str],
         style: Style,
         total_step: int,
         speed: float = 1.05,
