@@ -1,0 +1,7 @@
+services:
+  supertonic:
+    build:
+      context: .
+    ports:
+      - "7788:7788"
+    restart: unless-stopped

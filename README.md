@@ -108,6 +108,39 @@ supertonic serve --host 127.0.0.1 --port 7788
 
 Once running, use the native `POST /v1/tts` endpoint or the OpenAI-compatible `POST /v1/audio/speech` endpoint. The server also exposes interactive OpenAPI docs at `http://127.0.0.1:7788/docs`. See the [supertonic-py serve guide](https://supertone-inc.github.io/supertonic-py/cli/serve/) for request examples, batch synthesis, and custom Voice Builder JSON import.
 
+### Docker
+
+Run Supertonic as a local HTTP server via Docker Compose:
+
+```bash
+docker compose up -d
+```
+
+You can also build and run the Docker image manually:
+
+```bash
+docker build -t supertonic .
+docker run -d -p 7788:7788 supertonic
+```
+
+Or use the pre-built image from GitHub Container Registry:
+
+```bash
+docker run -d -p 7788:7788 ghcr.io/supertone-inc/supertonic
+```
+
+Generate speech by calling the local server:
+
+```bash
+curl --location 'http://localhost:7788/v1/tts' \
+  --header 'Content-Type: application/json' \
+  --data '{
+    "text": "Hello World",
+    "lang": "en",
+    "voice": "F4"
+  }' --output output.wav
+```
+
 ## Getting Started
 
 First, clone the repository:
