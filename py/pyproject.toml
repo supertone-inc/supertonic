@@ -9,6 +9,11 @@ dependencies = [
     "soundfile>=0.12.1",
     "librosa>=0.10.0",
     "PyYAML>=6.0",
+    "supertonic>=1.3.1",
+    "httpx[socks]>=0.28.1",
+    "faster-whisper>=1.2.1",
+    "python-multipart>=0.0.29",
+    "ruaccent>=1.5.8.3",
 ]
 
 [tool.setuptools]

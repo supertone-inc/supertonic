@@ -1,0 +1,21 @@
+{
+  "version": "1.0",
+  "orchestrator_rules": {
+    "agentic_swarm": {
+      "max_threads_per_day": 100,
+      "max_concurrency_throttle": 5,
+      "watchdog_timeout_minutes": 10
+    },
+    "circuit_breaker": {
+      "max_retries_per_task": 3,
+      "max_cost_budget_usd_per_task": 5.0,
+      "dead_letter_queue_path": ".agents/swarm/dead_letter_queue/",
+      "idempotency_reset_command": "git reset --hard HEAD"
+    },
+    "contract_driven_development": {
+      "require_contract_before_branching": true,
+      "openapi_path": "docs/openapi.yaml",
+      "graphql_schema_path": "docs/schema.graphql"
+    }
+  }
+}

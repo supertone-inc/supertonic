@@ -1,5 +1,8 @@
 import * as ort from 'onnxruntime-web';
 
+// Set path for ONNX Runtime WebAssembly files
+ort.env.wasm.wasmPaths = '/wasm/';
+
 // Available languages for multilingual TTS
 export const AVAILABLE_LANGS = ['en', 'ko', 'ja', 'ar', 'bg', 'cs', 'da', 'de', 'el', 'es', 'et', 'fi', 'fr', 'hi', 'hr', 'hu', 'id', 'it', 'lt', 'lv', 'nl', 'pl', 'pt', 'ro', 'ru', 'sk', 'sl', 'sv', 'tr', 'uk', 'vi', 'na'];
 

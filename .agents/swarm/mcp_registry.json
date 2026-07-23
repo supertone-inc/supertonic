@@ -1,0 +1,40 @@
+{
+  "agents": {
+    "security_auditor": {
+      "skills": ["security-auditor", "secrets-management", "security-sast"],
+      "mcp": ["sentry", "datadog", "github"]
+    },
+    "qa_automation": {
+      "skills": ["playwright-skill", "tdd-workflow", "unit-testing-test-generate"],
+      "mcp": ["puppeteer"]
+    },
+    "knowledge_oracle": {
+      "skills": [],
+      "mcp": ["google-notebooklm", "mem0"]
+    },
+    "devops_sre": {
+      "skills": ["docker-expert", "github-actions-templates", "deployment-procedures"],
+      "mcp": ["docker", "kubernetes"]
+    },
+    "database_admin": {
+      "skills": [],
+      "mcp": ["postgresql", "sqlite", "stitch-app-services"]
+    },
+    "frontend_ui": {
+      "skills": [],
+      "mcp": ["figma", "google-stitch"]
+    },
+    "visual_creator": {
+      "skills": [],
+      "mcp": ["nanobana"]
+    },
+    "backend_api": {
+      "skills": ["tdd-workflow"],
+      "mcp": ["stitch-graphql", "nanobanana-serverless", "github"]
+    },
+    "technical_writer": {
+      "skills": ["walkthrough-generator"],
+      "mcp": ["github"]
+    }
+  }
+}

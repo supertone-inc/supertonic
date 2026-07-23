@@ -31,14 +31,59 @@ function serveRootAssets() {
   };
 }
 
+function serveWasmFiles() {
+  const wasmDir = path.resolve(__dirname, 'public/wasm');
+  return {
+    name: 'serve-wasm-files',
+    configureServer(server) {
+      server.middlewares.use('/wasm', (req, res, next) => {
+        const urlPath = decodeURIComponent((req.url || '').split('?')[0]);
+        const filePath = path.resolve(wasmDir, `.${urlPath}`);
+
+        if (!filePath.startsWith(wasmDir) || !existsSync(filePath)) {
+          next();
+          return;
+        }
+
+        const stat = statSync(filePath);
+        if (!stat.isFile()) {
+          next();
+          return;
+        }
+
+        if (filePath.endsWith('.wasm')) {
+          res.setHeader('Content-Type', 'application/wasm');
+        } else if (filePath.endsWith('.mjs') || filePath.endsWith('.js')) {
+          res.setHeader('Content-Type', 'application/javascript');
+        } else if (filePath.endsWith('.json') || filePath.endsWith('.map')) {
+          res.setHeader('Content-Type', 'application/json');
+        }
+
+        res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
+        res.setHeader('Cross-Origin-Embedder-Policy', 'require-corp');
+
+        createReadStream(filePath).pipe(res);
+      });
+    }
+  };
+}
+
 export default defineConfig({
-  plugins: [serveRootAssets()],
+  plugins: [serveRootAssets(), serveWasmFiles()],
   server: {
     port: 3000,
-    open: true
+    host: true,
+    open: true,
+    headers: {
+      'Cross-Origin-Opener-Policy': 'same-origin',
+      'Cross-Origin-Embedder-Policy': 'require-corp'
+    }
   },
   build: {
-    target: 'esnext'
+    target: 'esnext',
+    outDir: '../py/static',
+    emptyOutDir: true,
+    assetsDir: 'static-assets'
   },
   optimizeDeps: {
     exclude: ['onnxruntime-web']
