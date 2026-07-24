@@ -1,0 +1,20 @@
+[project]
+name = "tts-openvino"
+version = "1.0.0"
+description = "Supertonic TTS OpenVINO Inference"
+requires-python = ">=3.10"
+dependencies = [
+    "openvino==2026.1.0",
+    "openvino-telemetry==2025.2.0",
+    "numpy>=1.26.0",
+    "soundfile>=0.12.1",
+    "librosa>=0.10.0",
+    "PyYAML>=6.0",
+]
+
+[tool.setuptools]
+py-modules = []
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
