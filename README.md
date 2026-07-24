@@ -97,6 +97,30 @@ tts.save_audio(wav, "output.wav")
 print(f"Generated {duration[0]:.2f}s of audio")
 ```
 
+### MLX Conversion
+
+This fork includes an experimental MLX graph runtime for Supertonic 3. The
+official ONNX graphs are converted into JSON topology plus NPZ initializers,
+then executed with MLX arrays.
+
+```bash
+python scripts/convert_mlx.py \
+  --source /path/to/Supertone/supertonic-3 \
+  --output /path/to/supertonic-3-mlx
+
+python scripts/infer_mlx.py \
+  --model /path/to/supertonic-3-mlx \
+  --text "Supertonic 3 is running with MLX." \
+  --lang en \
+  --voice M1 \
+  --total-step 8 \
+  --output output.wav
+```
+
+The MLX runtime is specific to the Supertonic 3 ONNX graph subset and has been
+checked against ONNX Runtime with per-stage maximum absolute errors around
+`1e-5`.
+
 ### Local HTTP Server
 
 The Python SDK can also run Supertonic as a local HTTP service. This is useful when you want to call Supertonic from tools that already speak HTTP, such as local agents, browser extensions, Electron apps, workflow automation tools, or OpenAI-compatible audio clients.

@@ -6,6 +6,7 @@ onnx
 # Output files
 results
 results_v3_sdk/
+runs/
 
 # Python
 __pycache__
