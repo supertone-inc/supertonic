@@ -1,0 +1,30 @@
+{
+  "name": "supertonic-realtime",
+  "version": "1.0.0",
+  "description": "Real-time conversational TTS with Supertonic - Voice-to-voice AI conversations",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "keywords": [
+    "tts",
+    "streaming",
+    "api",
+    "supertonic",
+    "text-to-speech",
+    "realtime",
+    "conversation",
+    "voice"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "node-fetch": "^3.3.2",
+    "onnxruntime-node": "^1.23.2",
+    "ws": "^8.14.2"
+  }
+}

@@ -1,0 +1,1014 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Supertonic + Ollama Conversation</title>
+    <link rel="stylesheet" href="styles/conversation-client.css">
+</head>
+
+<body>
+    <div class="container">
+        <h1>🤖 Real-Time Conversation (Ollama + Supertonic)</h1>
+
+        <div class="controls">
+            <div class="control-group">
+                <label>Model:</label>
+                <select id="modelSelect" style="width: 120px;" title="Select LLM model">
+                    <option value="llama3.2">Loading models...</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label>Voice:</label>
+                <select id="voiceSelect" title="Select voice style">
+                    <option value="M1">Male 1</option>
+                    <option value="M2">Male 2</option>
+                    <option value="F1">Female 1</option>
+                    <option value="F2">Female 2</option>
+                </select>
+            </div>
+            <div class="control-group-row">
+                <label>Steps:</label>
+                <input type="number" id="stepsInput" value="3" min="1" max="20" style="width: 60px;"
+                    title="Number of steps for TTS quality">
+                <label>Speed:</label>
+                <input type="number" id="speedInput" value="1.4" min="0.5" max="2.0" step="0.05" style="width: 70px;"
+                    title="Speech speed">
+            </div>
+            <button onclick="clearConversation()">Clear History</button>
+        </div>
+
+        <div class="status-indicators">
+            <div id="listeningIndicator" class="status-icon listening" data-tooltip="Listening... Speak now"></div>
+            <div id="ollamaStatusIcon" class="status-icon" data-tooltip="Checking Ollama status..."></div>
+        </div>
+
+        <div id="status" class="status info" style="display: none;"></div>
+
+        <div id="chatContainer" class="chat-container"></div>
+
+        <div class="input-container">
+            <textarea id="messageInput"
+                placeholder="Type your message here... (Press Enter to send, Shift+Enter for new line)"></textarea>
+            <div style="display: flex; flex-direction: column; gap: 5px;">
+                <button id="sendBtn" onclick="sendMessage()">Send</button>
+                <button id="voiceBtn" onclick="toggleVoiceRecording()" style="background: #dc3545;">
+                    <span id="voiceBtnText">🎤 Start Voice</span>
+                </button>
+                <button id="continuousBtn" onclick="toggleContinuousListening()"
+                    style="background: #28a745; margin-top: 5px;">
+                    <span id="continuousBtnText">🔴 Real-time Mode</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============================================================================
+        // Client-side Logging and Error Handling
+        // ============================================================================
+        const LogLevel = {
+            ERROR: 0,
+            WARN: 1,
+            INFO: 2,
+            DEBUG: 3,
+        };
+
+        const CLIENT_LOG_LEVEL = LogLevel.INFO; // Set to LogLevel.DEBUG for verbose logging
+
+        function formatTimestamp() {
+            return new Date().toISOString();
+        }
+
+        function clientLog(level, message, ...args) {
+            if (level <= CLIENT_LOG_LEVEL) {
+                const levelNames = ['ERROR', 'WARN', 'INFO', 'DEBUG'];
+                const prefix = `[${formatTimestamp()}] [${levelNames[level]}]`;
+                const logMethod = level === LogLevel.ERROR ? console.error :
+                    level === LogLevel.WARN ? console.warn : console.log;
+                logMethod(prefix, message, ...args);
+            }
+        }
+
+        const clientLogger = {
+            error: (message, ...args) => clientLog(LogLevel.ERROR, message, ...args),
+            warn: (message, ...args) => clientLog(LogLevel.WARN, message, ...args),
+            info: (message, ...args) => clientLog(LogLevel.INFO, message, ...args),
+            debug: (message, ...args) => clientLog(LogLevel.DEBUG, message, ...args),
+        };
+
+        // Global error handlers
+        window.addEventListener('error', (event) => {
+            clientLogger.error('Global error:', event.error);
+            clientLogger.debug('Error details:', {
+                message: event.message,
+                filename: event.filename,
+                lineno: event.lineno,
+                colno: event.colno,
+            });
+            showStatus(`Error: ${event.message}`, 'error');
+        });
+
+        window.addEventListener('unhandledrejection', (event) => {
+            clientLogger.error('Unhandled promise rejection:', event.reason);
+            showStatus(`Error: ${event.reason?.message || 'Unknown error'}`, 'error');
+        });
+
+        // ============================================================================
+        // Application State
+        // ============================================================================
+        let conversationId = `conv_${Date.now()}`;
+        let audioContext = null;
+        let currentAudioChunks = [];
+        let audioQueue = [];
+        let isPlayingAudio = false;
+
+        // Voice recognition
+        let recognition = null;
+        let isRecording = false;
+        let mediaStream = null; // Store media stream to reuse
+        let transcriptionText = '';
+        let continuousListening = false; // Real-time mode: always listening
+        let currentReader = null; // Track current stream reader to abort if needed
+        let speechEndTimeout = null; // Timeout to trigger auto-send after speech ends
+
+        // Initialize Web Speech API
+        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognition = new SpeechRecognition();
+            recognition.continuous = true;
+            recognition.interimResults = true;
+            recognition.lang = 'en-US';
+
+            // Set max alternatives to get better results
+            recognition.maxAlternatives = 1;
+
+            clientLogger.info('Web Speech API initialized successfully');
+
+            recognition.onresult = (event) => {
+                clientLogger.info('Speech recognition result received:', {
+                    resultIndex: event.resultIndex,
+                    resultsLength: event.results.length
+                });
+
+                let interimTranscript = '';
+                let newFinalTranscript = '';
+
+                // Process all results from the last resultIndex
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    const result = event.results[i];
+                    const transcript = result[0].transcript;
+                    const confidence = result[0].confidence;
+                    const isFinal = result.isFinal;
+
+                    clientLogger.info(`Result ${i}:`, {
+                        transcript: transcript,
+                        isFinal: isFinal,
+                        confidence: confidence
+                    });
+
+                    if (isFinal) {
+                        // Add final transcript to accumulated text
+                        newFinalTranscript += transcript + ' ';
+                    } else {
+                        // Interim results (still being processed)
+                        interimTranscript += transcript;
+                    }
+                }
+
+                // Accumulate final transcripts (don't overwrite, append)
+                if (newFinalTranscript) {
+                    transcriptionText += newFinalTranscript;
+                    clientLogger.info('Final transcript added:', newFinalTranscript);
+                    clientLogger.info('Total transcription so far:', transcriptionText);
+                }
+
+                // Show accumulated final text + current interim text
+                const displayText = transcriptionText + interimTranscript;
+                updateTranscriptionPreview(displayText);
+
+                if (interimTranscript) {
+                    clientLogger.debug('Interim transcript:', interimTranscript);
+                }
+
+                // In continuous mode, when we get final results, set a timeout to auto-send
+                // This ensures we wait for all final results before sending
+                if (continuousListening && newFinalTranscript.trim().length > 0) {
+                    // Clear any existing timeout
+                    if (speechEndTimeout) {
+                        clearTimeout(speechEndTimeout);
+                    }
+
+                    // Set timeout to auto-send after receiving final results
+                    // This gives time for more final results to come in
+                    speechEndTimeout = setTimeout(() => {
+                        const finalText = transcriptionText.trim();
+                        clientLogger.info('Auto-send triggered from final results:', {
+                            text: finalText,
+                            length: finalText.length,
+                            isPlayingAudio: isPlayingAudio
+                        });
+
+                        if (finalText.length > 3 && !isPlayingAudio) {
+                            clientLogger.info('Auto-sending message:', finalText);
+                            const textToSend = finalText;
+                            transcriptionText = '';
+                            document.getElementById('messageInput').value = textToSend;
+                            sendMessage();
+                        } else {
+                            clientLogger.debug('Not auto-sending:', {
+                                text: finalText,
+                                length: finalText.length,
+                                isPlayingAudio: isPlayingAudio
+                            });
+                        }
+                        speechEndTimeout = null;
+                    }, 300); // Wait 300ms after final results for ultra-low latency (was 800ms)
+                }
+            };
+
+            recognition.onerror = (event) => {
+                // 'no-speech' is normal - just means no speech detected yet (user paused or hasn't spoken)
+                if (event.error === 'no-speech') {
+                    clientLogger.debug('No speech detected (normal - user may be pausing)');
+                    return;
+                }
+
+                // Handle specific error types
+                let errorMessage = '';
+                switch (event.error) {
+                    case 'not-allowed':
+                    case 'service-not-allowed':
+                        errorMessage = 'Microphone permission denied. Please allow microphone access and refresh the page.';
+                        break;
+                    case 'no-speech':
+                        errorMessage = 'No speech detected. Please try speaking again.';
+                        break;
+                    case 'audio-capture':
+                        errorMessage = 'No microphone found. Please connect a microphone.';
+                        break;
+                    case 'network':
+                        errorMessage = 'Network error. Please check your internet connection.';
+                        break;
+                    default:
+                        errorMessage = `Speech recognition error: ${event.error}`;
+                }
+
+                clientLogger.error('Speech recognition error:', event.error);
+                showStatus(errorMessage, 'error');
+                stopVoiceRecording();
+            };
+
+            recognition.onstart = () => {
+                clientLogger.info('Speech recognition started');
+                // Show listening icon instead of status message
+                const listeningIndicator = document.getElementById('listeningIndicator');
+                if (listeningIndicator) {
+                    listeningIndicator.classList.add('active');
+                }
+            };
+
+            recognition.onend = () => {
+                clientLogger.info('Speech recognition ended, isRecording:', isRecording);
+                clientLogger.info('Current transcription:', transcriptionText);
+
+                // Auto-restart if we're still in recording mode OR in continuous mode
+                if (isRecording || continuousListening) {
+                    try {
+                        clientLogger.debug('Auto-restarting recognition...');
+                        recognition.start();
+                    } catch (e) {
+                        // Already started or error
+                        clientLogger.debug('Recognition restart error:', e.message);
+                    }
+                }
+            };
+
+            recognition.onspeechstart = () => {
+                clientLogger.info('Speech detected - user started speaking - USER HAS PRIORITY');
+
+                // Clear any pending auto-send timeout since user is speaking again
+                if (speechEndTimeout) {
+                    clearTimeout(speechEndTimeout);
+                    speechEndTimeout = null;
+                    clientLogger.debug('Cleared auto-send timeout - user speaking again');
+                }
+
+                // ALWAYS interrupt AI when user starts speaking - user has absolute priority
+                // This works in ALL modes, not just continuous mode
+                if (isPlayingAudio || currentReader) {
+                    clientLogger.info('🚨 USER INTERRUPTION - Stopping AI immediately');
+                    stopAllAudio();
+
+                    // Cancel current stream reader if active - this stops receiving new audio
+                    if (currentReader) {
+                        try {
+                            currentReader.cancel();
+                            clientLogger.info('✅ Canceled stream reader - user interrupted');
+                        } catch (e) {
+                            clientLogger.debug('Error canceling reader:', e);
+                        }
+                        currentReader = null;
+                    }
+
+                    // Clear transcription if user is interrupting (they want to say something new)
+                    if (isPlayingAudio) {
+                        transcriptionText = '';
+                        clientLogger.debug('Cleared transcription - user interrupting with new message');
+                    }
+                }
+            };
+
+            recognition.onspeechend = () => {
+                clientLogger.info('Speech ended - user stopped speaking');
+                // Note: Auto-send is now handled in onresult when final transcripts arrive
+                // This event is just for logging
+            };
+
+            recognition.onsoundstart = () => {
+                clientLogger.info('Sound detected (may be speech or noise)');
+            };
+
+            recognition.onsoundend = () => {
+                clientLogger.info('Sound ended');
+            };
+        } else {
+            clientLogger.warn('Web Speech API not supported in this browser');
+        }
+
+        function showStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('status');
+            statusDiv.textContent = message;
+            statusDiv.className = `status ${type}`;
+            statusDiv.style.display = 'block';
+            setTimeout(() => {
+                if (type === 'info') statusDiv.style.display = 'none';
+            }, 3000);
+        }
+
+        function addMessage(content, role, streaming = false) {
+            const chatContainer = document.getElementById('chatContainer');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${role} ${streaming ? 'streaming' : ''}`;
+            messageDiv.id = role === 'assistant' && streaming ? 'streaming-message' : null;
+            messageDiv.textContent = content;
+            chatContainer.appendChild(messageDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+            return messageDiv;
+        }
+
+        function updateStreamingMessage(text) {
+            let messageDiv = document.getElementById('streaming-message');
+            if (!messageDiv) {
+                messageDiv = addMessage('', 'assistant', true);
+            }
+            messageDiv.textContent = text;
+            const chatContainer = document.getElementById('chatContainer');
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        /**
+         * Stop all audio playback immediately (for interrupt)
+         * User always has priority - this should be called whenever user starts speaking
+         */
+        function stopAllAudio() {
+            clientLogger.info('Stopping all audio playback - user has priority');
+
+            // Stop all current audio sources immediately
+            currentAudioChunks.forEach(chunk => {
+                try {
+                    chunk.stop();
+                } catch (e) {
+                    // Already stopped or error - ignore
+                }
+            });
+            currentAudioChunks = [];
+
+            // Clear audio queue - reject any pending audio chunks
+            audioQueue.forEach(item => {
+                try {
+                    if (item.reject) {
+                        item.reject(new Error('Interrupted by user'));
+                    }
+                } catch (e) {
+                    // Ignore errors
+                }
+            });
+            audioQueue = [];
+            isPlayingAudio = false;
+        }
+
+        /**
+         * Queue audio chunk to play sequentially
+         */
+        function queueAudioChunk(base64Data) {
+            return new Promise((resolve, reject) => {
+                audioQueue.push({ base64Data, resolve, reject });
+                processAudioQueue();
+            });
+        }
+
+        /**
+         * Process audio queue sequentially
+         */
+        async function processAudioQueue() {
+            if (isPlayingAudio || audioQueue.length === 0) {
+                return;
+            }
+
+            isPlayingAudio = true;
+            const { base64Data, resolve, reject } = audioQueue.shift();
+
+            try {
+                const binaryString = atob(base64Data);
+                const bytes = new Uint8Array(binaryString.length);
+                for (let i = 0; i < binaryString.length; i++) {
+                    bytes[i] = binaryString.charCodeAt(i);
+                }
+
+                const blob = new Blob([bytes], { type: 'audio/wav' });
+                const arrayBuffer = await blob.arrayBuffer();
+
+                if (!audioContext) {
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                }
+
+                const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+                const source = audioContext.createBufferSource();
+                source.buffer = audioBuffer;
+                source.connect(audioContext.destination);
+
+                // Wait for audio to finish playing
+                source.onended = () => {
+                    currentAudioChunks = currentAudioChunks.filter(chunk => chunk !== source);
+                    isPlayingAudio = false;
+                    resolve();
+                    // Process next item in queue
+                    processAudioQueue();
+                };
+
+                source.start();
+                currentAudioChunks.push(source);
+            } catch (error) {
+                clientLogger.error('Error playing audio:', error);
+                clientLogger.debug('Audio chunk that failed:', {
+                    queueLength: audioQueue.length,
+                    base64Length: base64Data.length,
+                });
+                isPlayingAudio = false;
+                reject(error);
+                // Process next item in queue even if this one failed
+                processAudioQueue();
+            }
+        }
+
+        async function checkOllamaStatus() {
+            try {
+                const response = await fetch('http://localhost:3001/health');
+                const data = await response.json();
+                return data.ollamaAvailable;
+            } catch (error) {
+                return false;
+            }
+        }
+
+        async function sendMessage() {
+            const startTime = Date.now(); // Track start time for performance logging
+            const messageInput = document.getElementById('messageInput');
+            const message = messageInput.value.trim();
+
+            if (!message) {
+                clientLogger.warn('sendMessage called with empty message');
+                return;
+            }
+
+            // Clear any pending speech end timeout since we're sending now
+            if (speechEndTimeout) {
+                clearTimeout(speechEndTimeout);
+                speechEndTimeout = null;
+            }
+
+            // In continuous mode, temporarily stop listening while processing
+            if (continuousListening && isRecording) {
+                try {
+                    recognition.stop();
+                    clientLogger.debug('Temporarily stopped recognition for message processing');
+                } catch (e) {
+                    clientLogger.debug('Error stopping recognition:', e);
+                }
+            }
+
+            // Check if Ollama is available
+            const ollamaAvailable = await checkOllamaStatus();
+            if (!ollamaAvailable) {
+                showStatus('❌ Ollama is not running! Please start Ollama first:\n1. Install Ollama from https://ollama.ai\n2. Run: ollama serve\n3. Pull a model: ollama pull llama3.2', 'error');
+                return;
+            }
+
+            const sendBtn = document.getElementById('sendBtn');
+            sendBtn.disabled = true;
+            messageInput.disabled = true;
+
+            // Add user message to chat
+            addMessage(message, 'user');
+            messageInput.value = '';
+
+            const model = document.getElementById('modelSelect').value || 'llama3.2';
+            const voice = document.getElementById('voiceSelect').value;
+            const steps = parseInt(document.getElementById('stepsInput').value);
+            const speed = parseFloat(document.getElementById('speedInput').value) || 1.4;
+
+            showStatus('Connecting to conversation API...', 'info');
+
+            try {
+                const response = await fetch('http://localhost:3001/conversation', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        message,
+                        conversationId,
+                        model,
+                        voice,
+                        steps,
+                        speed: speed
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    clientLogger.error('HTTP error:', response.status, errorText);
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                clientLogger.info('Connected to conversation API, starting stream');
+
+                const reader = response.body.getReader();
+                currentReader = reader; // Track reader for interruption
+                const decoder = new TextDecoder();
+                let buffer = '';
+                let fullText = '';
+
+                while (true) {
+                    // Check if user interrupted before reading next chunk
+                    if (!currentReader) {
+                        clientLogger.info('Stream interrupted by user - stopping read loop');
+                        break;
+                    }
+
+                    const { done, value } = await reader.read();
+                    if (done) {
+                        currentReader = null;
+                        break;
+                    }
+
+                    // Check again after reading - user might have interrupted
+                    if (!currentReader) {
+                        clientLogger.info('Stream interrupted by user after read - stopping');
+                        break;
+                    }
+
+                    buffer += decoder.decode(value, { stream: true });
+                    const lines = buffer.split('\n');
+                    buffer = lines.pop() || '';
+
+                    for (const line of lines) {
+                        if (line.startsWith('data: ')) {
+                            try {
+                                const data = JSON.parse(line.slice(6));
+
+                                if (data.type === 'conversation_start') {
+                                    conversationId = data.conversationId;
+                                    showStatus('Conversation started...', 'info');
+                                } else if (data.type === 'text_chunk') {
+                                    fullText = data.fullText;
+                                    updateStreamingMessage(fullText);
+                                } else if (data.type === 'audio') {
+                                    // Check if user interrupted before queuing audio
+                                    if (!currentReader) {
+                                        clientLogger.debug('Skipping audio chunk - user interrupted');
+                                        continue;
+                                    }
+
+                                    // Queue audio chunk (will play sequentially)
+                                    queueAudioChunk(data.data).catch(err => {
+                                        if (err.message !== 'Interrupted by user') {
+                                            clientLogger.error('Audio playback error:', err);
+                                        }
+                                    });
+                                    // Add audio indicator
+                                    const indicator = document.createElement('span');
+                                    indicator.className = 'audio-indicator';
+                                    indicator.textContent = '🔊';
+                                    const streamingMsg = document.getElementById('streaming-message');
+                                    if (streamingMsg && !streamingMsg.querySelector('.audio-indicator')) {
+                                        streamingMsg.appendChild(indicator);
+                                    }
+                                } else if (data.type === 'conversation_end') {
+                                    // Finalize message
+                                    const streamingMsg = document.getElementById('streaming-message');
+                                    if (streamingMsg) {
+                                        streamingMsg.classList.remove('streaming');
+                                        streamingMsg.id = null;
+                                    }
+                                    showStatus('Response complete', 'info');
+
+                                    // In continuous mode, restart listening after response
+                                    if (continuousListening) {
+                                        clientLogger.info('Auto-restarting listening after response');
+                                        // Reset transcription for next message
+                                        transcriptionText = '';
+                                        setTimeout(() => {
+                                            if (continuousListening) {
+                                                if (!isRecording) {
+                                                    startVoiceRecording();
+                                                } else {
+                                                    // If already recording, just ensure it continues
+                                                    try {
+                                                        if (recognition && recognition.state === 'stopped') {
+                                                            recognition.start();
+                                                        }
+                                                    } catch (e) {
+                                                        clientLogger.debug('Error restarting recognition:', e);
+                                                    }
+                                                }
+                                            }
+                                        }, 1000); // Delay to let audio finish
+                                    }
+
+                                    // Clear reader reference
+                                    currentReader = null;
+                                } else if (data.type === 'error') {
+                                    showStatus(`Error: ${data.message}`, 'error');
+                                }
+                            } catch (e) {
+                                clientLogger.error('Error parsing SSE data:', e);
+                                clientLogger.debug('SSE line that failed:', line);
+                            }
+                        }
+                    }
+                }
+            } catch (error) {
+                const duration = Date.now() - startTime;
+                clientLogger.error('Error in sendMessage:', error);
+                clientLogger.debug('Error details:', {
+                    message: error.message,
+                    stack: error.stack,
+                    duration: `${duration}ms`,
+                });
+
+                let errorMsg = error.message;
+                if (errorMsg.includes('localhost:11434') || errorMsg.includes('fetch')) {
+                    errorMsg = 'Ollama is not running! Please:\n1. Start Ollama: ollama serve\n2. Pull a model: ollama pull llama3.2\n3. Refresh this page';
+                }
+                showStatus(`Error: ${errorMsg}`, 'error');
+                addMessage(`Error: ${errorMsg}`, 'assistant');
+            } finally {
+                const duration = Date.now() - startTime;
+                clientLogger.info(`Message processing completed in ${duration}ms`);
+                sendBtn.disabled = false;
+                messageInput.disabled = false;
+                messageInput.focus();
+            }
+        }
+
+        function toggleVoiceRecording() {
+            if (!recognition) {
+                showStatus('Speech recognition not supported in this browser. Please use Chrome or Edge.', 'error');
+                return;
+            }
+
+            if (isRecording) {
+                stopVoiceRecording();
+            } else {
+                startVoiceRecording();
+            }
+        }
+
+        async function startVoiceRecording() {
+            if (!recognition) {
+                clientLogger.error('Speech recognition not available');
+                return;
+            }
+
+            // In continuous mode, stop any playing audio when starting to listen
+            if (continuousListening && isPlayingAudio) {
+                stopAllAudio();
+            }
+
+            try {
+                // Reuse existing stream if available, otherwise request permission
+                if (!mediaStream || mediaStream.getTracks().every(track => track.readyState === 'ended')) {
+                    try {
+                        mediaStream = await navigator.mediaDevices.getUserMedia({
+                            audio: {
+                                echoCancellation: true,
+                                noiseSuppression: true,
+                                autoGainControl: true
+                            }
+                        });
+                        clientLogger.info('Microphone permission granted');
+                        // Store stream globally to reuse
+                        window.currentMediaStream = mediaStream;
+                    } catch (permissionError) {
+                        clientLogger.error('Microphone permission denied:', permissionError);
+                        showStatus('❌ Microphone permission denied. Please allow microphone access in your browser settings and try again.', 'error');
+                        return;
+                    }
+                } else {
+                    clientLogger.info('Reusing existing microphone stream');
+                }
+
+                // Reset transcription text for new recording
+                transcriptionText = '';
+
+                // Monitor audio levels continuously
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const source = audioContext.createMediaStreamSource(mediaStream);
+                const analyser = audioContext.createAnalyser();
+                analyser.fftSize = 256;
+                source.connect(analyser);
+
+                // Check audio levels after a short delay
+                setTimeout(() => {
+                    const dataArray = new Uint8Array(analyser.frequencyBinCount);
+                    analyser.getByteFrequencyData(dataArray);
+                    const maxLevel = Math.max(...dataArray);
+                    clientLogger.info('Microphone audio level:', maxLevel);
+                    if (maxLevel > 0) {
+                        clientLogger.info('✅ Microphone is working and receiving audio');
+                    } else {
+                        clientLogger.warn('⚠️ Microphone may not be receiving audio (level: 0)');
+                    }
+                }, 1000);
+
+                let audioCheckInterval = setInterval(() => {
+                    if (!isRecording) {
+                        clearInterval(audioCheckInterval);
+                        return;
+                    }
+                    const dataArray = new Uint8Array(analyser.frequencyBinCount);
+                    analyser.getByteFrequencyData(dataArray);
+                    const maxLevel = Math.max(...dataArray);
+                    const avgLevel = dataArray.reduce((a, b) => a + b) / dataArray.length;
+
+                    if (maxLevel > 5) {
+                        clientLogger.debug('🎤 Audio detected - level:', maxLevel, 'avg:', avgLevel.toFixed(2));
+                    }
+                }, 500);
+
+                clientLogger.info('Starting speech recognition...');
+                recognition.start();
+                isRecording = true;
+
+                const voiceBtn = document.getElementById('voiceBtn');
+                const voiceBtnText = document.getElementById('voiceBtnText');
+                voiceBtn.classList.add('voice-recording');
+                voiceBtnText.textContent = '🛑 Stop & Send';
+
+                // Show transcription preview area (minimal, icon shows listening state)
+                let previewDiv = document.getElementById('transcriptionPreview');
+                if (!previewDiv) {
+                    previewDiv = document.createElement('div');
+                    previewDiv.id = 'transcriptionPreview';
+                    previewDiv.className = 'transcription-preview';
+                    previewDiv.textContent = '';
+                    document.querySelector('.input-container').parentNode.insertBefore(
+                        previewDiv,
+                        document.querySelector('.input-container')
+                    );
+                } else {
+                    previewDiv.textContent = '';
+                }
+
+                clientLogger.info('✅ Voice recording started - speak now!');
+                // Show listening icon
+                const listeningIndicator = document.getElementById('listeningIndicator');
+                if (listeningIndicator) {
+                    listeningIndicator.classList.add('active');
+                    listeningIndicator.setAttribute('data-tooltip', 'Listening... Speak clearly now');
+                }
+            } catch (e) {
+                clientLogger.error('Error starting recognition:', e);
+                clientLogger.error('Error details:', {
+                    name: e.name,
+                    message: e.message,
+                    stack: e.stack
+                });
+
+                // Check if it's a permission error
+                if (e.name === 'NotAllowedError' || e.name === 'PermissionDeniedError') {
+                    showStatus('❌ Microphone permission denied. Please allow microphone access and refresh the page.', 'error');
+                } else {
+                    showStatus(`Error starting voice recognition: ${e.message}`, 'error');
+                }
+            }
+        }
+
+        function stopVoiceRecording() {
+            if (!recognition) return;
+
+            clientLogger.info('Stopping voice recording');
+            clientLogger.info('Current transcription before stop:', transcriptionText);
+
+            // Hide listening indicator
+            const listeningIndicator = document.getElementById('listeningIndicator');
+            if (listeningIndicator) {
+                listeningIndicator.classList.remove('active');
+                listeningIndicator.removeAttribute('data-tooltip');
+            }
+
+            // Don't stop media stream - keep it open for reuse
+            // Only stop if explicitly disabling continuous mode or closing
+            if (!continuousListening) {
+                // Only stop stream if not in continuous mode
+                // Keep it open for faster reconnection
+                clientLogger.debug('Keeping media stream open for reuse');
+            }
+
+            try {
+                recognition.stop();
+                clientLogger.info('Recognition stopped');
+            } catch (e) {
+                // Already stopped
+                clientLogger.debug('Recognition already stopped or error:', e.message);
+            }
+
+            isRecording = false;
+            const voiceBtn = document.getElementById('voiceBtn');
+            const voiceBtnText = document.getElementById('voiceBtnText');
+            voiceBtn.classList.remove('voice-recording');
+            voiceBtnText.textContent = '🎤 Start Voice';
+
+            // Hide transcription preview
+            const previewDiv = document.getElementById('transcriptionPreview');
+            if (previewDiv) {
+                previewDiv.remove();
+            }
+
+            // Wait longer for any final results to come through
+            setTimeout(() => {
+                const finalText = transcriptionText.trim();
+                clientLogger.info('Final transcription after stop:', finalText);
+                clientLogger.info('Transcription length:', finalText.length);
+
+                // If we have transcribed text, send it
+                if (finalText && finalText.length > 0) {
+                    const messageInput = document.getElementById('messageInput');
+                    messageInput.value = finalText;
+                    showStatus('Sending transcribed message...', 'info');
+                    sendMessage();
+                } else {
+                    clientLogger.warn('No speech detected after recording');
+                    clientLogger.warn('Debug info:', {
+                        transcriptionText: transcriptionText,
+                        length: transcriptionText.length,
+                        trimmed: finalText,
+                        trimmedLength: finalText.length
+                    });
+                    showStatus('No speech detected. Make sure:\n1. Microphone is connected and working\n2. You spoke clearly and loudly\n3. Microphone permission is granted\n4. Try speaking closer to the microphone\n5. Check browser console (F12) for details', 'error');
+                }
+
+                // Reset transcription text for next recording
+                transcriptionText = '';
+            }, 1000); // Longer delay to catch any final results
+        }
+
+        function updateTranscriptionPreview(text) {
+            const previewDiv = document.getElementById('transcriptionPreview');
+            if (previewDiv) {
+                // Only show transcription text, no "Listening..." prefix
+                // The icon in the top right shows listening state
+                previewDiv.textContent = text.trim() || '';
+            }
+        }
+
+        function clearConversation() {
+            conversationId = `conv_${Date.now()}`;
+            document.getElementById('chatContainer').innerHTML = '';
+            // Stop all playing audio
+            currentAudioChunks.forEach(chunk => {
+                try {
+                    chunk.stop();
+                } catch (e) { }
+            });
+            currentAudioChunks = [];
+            // Clear audio queue
+            audioQueue = [];
+            isPlayingAudio = false;
+            // Stop voice recording if active
+            if (isRecording) {
+                stopVoiceRecording();
+            }
+            showStatus('Conversation cleared', 'info');
+        }
+
+        /**
+         * Toggle continuous listening mode (real-time conversational mode)
+         */
+        function toggleContinuousListening() {
+            continuousListening = !continuousListening;
+            const continuousBtn = document.getElementById('continuousBtn');
+            const continuousBtnText = document.getElementById('continuousBtnText');
+
+            if (continuousListening) {
+                continuousBtn.style.background = '#28a745';
+                continuousBtnText.textContent = '🟢 Real-time ON';
+                showStatus('Real-time mode enabled - always listening', 'info');
+
+                // Start listening if not already
+                if (!isRecording && recognition) {
+                    startVoiceRecording();
+                }
+            } else {
+                continuousBtn.style.background = '#6c757d';
+                continuousBtnText.textContent = '🔴 Real-time Mode';
+                showStatus('Real-time mode disabled', 'info');
+
+                // Stop listening if in continuous mode
+                if (isRecording && !continuousListening) {
+                    stopVoiceRecording();
+                }
+            }
+        }
+
+        // Check Ollama status and microphone availability on page load
+        // Load available Ollama models
+        async function loadOllamaModels() {
+            try {
+                const response = await fetch('http://localhost:3001/models');
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const data = await response.json();
+                const modelSelect = document.getElementById('modelSelect');
+
+                // Clear loading option
+                modelSelect.innerHTML = '';
+
+                if (data.models && data.models.length > 0) {
+                    // Add each model as an option
+                    data.models.forEach(model => {
+                        const option = document.createElement('option');
+                        option.value = model.name;
+                        option.textContent = model.name;
+                        // Set default model as selected
+                        if (model.name === data.defaultModel || model.name === 'llama3.2') {
+                            option.selected = true;
+                        }
+                        modelSelect.appendChild(option);
+                    });
+                    clientLogger.info(`Loaded ${data.models.length} Ollama models`);
+                } else {
+                    // No models found
+                    const option = document.createElement('option');
+                    option.value = 'llama3.2';
+                    option.textContent = 'llama3.2 (default - no models found)';
+                    modelSelect.appendChild(option);
+                    clientLogger.warn('No Ollama models found');
+                }
+            } catch (error) {
+                clientLogger.error('Error loading Ollama models:', error);
+                const modelSelect = document.getElementById('modelSelect');
+                modelSelect.innerHTML = '<option value="llama3.2">llama3.2 (default)</option>';
+            }
+        }
+
+        window.addEventListener('load', async () => {
+            // Check Ollama status
+            const ollamaStatusIcon = document.getElementById('ollamaStatusIcon');
+            const available = await checkOllamaStatus();
+            if (available) {
+                // Show ready icon
+                ollamaStatusIcon.className = 'status-icon ready active';
+                ollamaStatusIcon.textContent = '✅';
+                ollamaStatusIcon.setAttribute('data-tooltip', 'Ollama is connected and ready');
+                // Load available models
+                await loadOllamaModels();
+            } else {
+                // Show error icon
+                ollamaStatusIcon.className = 'status-icon error active';
+                ollamaStatusIcon.textContent = '❌';
+                ollamaStatusIcon.setAttribute('data-tooltip', 'Ollama is not running! Run: ollama serve');
+            }
+
+            // Don't check microphone on page load - wait for user to click voice button
+            // This prevents unnecessary permission prompts
+            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                clientLogger.info('Microphone API available - will request permission when voice button is clicked');
+            } else {
+                clientLogger.warn('getUserMedia not supported');
+            }
+        });
+
+        // Enter to send, Shift+Enter for new line
+        document.getElementById('messageInput').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+    </script>
+</body>
+
+</html>

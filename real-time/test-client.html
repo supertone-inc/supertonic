@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Supertonic Streaming API Test Client</title>
+    <link rel="stylesheet" href="styles/test-client.css">
+</head>
+<body>
+    <div class="container">
+        <h1>🎤 Supertonic Streaming API Test</h1>
+
+        <div>
+            <label>Text to Synthesize:</label>
+            <textarea id="textInput" placeholder="Enter text here...">This is a test of the real-time streaming TTS API. The audio will stream in chunks as it's generated.</textarea>
+        </div>
+
+        <div>
+            <label>Voice:</label>
+            <select id="voiceSelect">
+                <option value="M1">Male 1 (M1)</option>
+                <option value="M2">Male 2 (M2)</option>
+                <option value="F1">Female 1 (F1)</option>
+                <option value="F2">Female 2 (F2)</option>
+            </select>
+
+            <label>Steps:</label>
+            <input type="number" id="stepsInput" value="3" min="1" max="20">
+
+            <label>Speed:</label>
+            <input type="number" id="speedInput" value="1.4" min="0.5" max="2.0" step="0.05">
+        </div>
+
+        <button id="streamBtn" onclick="startStreaming()">Stream Audio (SSE)</button>
+        <button id="stopBtn" onclick="stopStreaming()" disabled>Stop</button>
+
+        <div id="status" class="status info" style="display: none;"></div>
+    </div>
+
+    <script>
+        let currentReader = null;
+        let audioChunks = [];
+        let audioContext = null;
+
+        function showStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('status');
+            statusDiv.textContent = message;
+            statusDiv.className = `status ${type}`;
+            statusDiv.style.display = 'block';
+        }
+
+        async function playAudioChunk(base64Data) {
+            try {
+                const binaryString = atob(base64Data);
+                const bytes = new Uint8Array(binaryString.length);
+                for (let i = 0; i < binaryString.length; i++) {
+                    bytes[i] = binaryString.charCodeAt(i);
+                }
+
+                const blob = new Blob([bytes], { type: 'audio/wav' });
+                const arrayBuffer = await blob.arrayBuffer();
+
+                if (!audioContext) {
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                }
+
+                const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+                const source = audioContext.createBufferSource();
+                source.buffer = audioBuffer;
+                source.connect(audioContext.destination);
+                source.start();
+
+                audioChunks.push(source);
+            } catch (error) {
+                console.error('Error playing audio chunk:', error);
+            }
+        }
+
+        async function startStreaming() {
+            const text = document.getElementById('textInput').value;
+            const voice = document.getElementById('voiceSelect').value;
+            const steps = parseInt(document.getElementById('stepsInput').value);
+            const speed = parseFloat(document.getElementById('speedInput').value);
+
+            if (!text.trim()) {
+                showStatus('Please enter some text', 'error');
+                return;
+            }
+
+            stopStreaming();
+
+            document.getElementById('streamBtn').disabled = true;
+            document.getElementById('stopBtn').disabled = false;
+            showStatus('Connecting to streaming API...', 'info');
+
+            try {
+                const response = await fetch('http://localhost:3001/stream', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text, voice, steps, speed })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const reader = response.body.getReader();
+                currentReader = reader;
+                const decoder = new TextDecoder();
+                let buffer = '';
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    buffer += decoder.decode(value, { stream: true });
+                    const lines = buffer.split('\n');
+                    buffer = lines.pop() || '';
+
+                    for (const line of lines) {
+                        if (line.startsWith('data: ')) {
+                            try {
+                                const data = JSON.parse(line.slice(6));
+
+                                if (data.type === 'start') {
+                                    showStatus(`Streaming started - ${data.totalChunks} chunks expected`, 'info');
+                                } else if (data.type === 'audio') {
+                                    await playAudioChunk(data.data);
+                                } else if (data.type === 'end') {
+                                    showStatus(`Streaming complete! Total duration: ${data.totalDuration.toFixed(2)}s`, 'success');
+                                    document.getElementById('streamBtn').disabled = false;
+                                    document.getElementById('stopBtn').disabled = true;
+                                } else if (data.type === 'error') {
+                                    showStatus(`Error: ${data.message}`, 'error');
+                                    document.getElementById('streamBtn').disabled = false;
+                                    document.getElementById('stopBtn').disabled = true;
+                                }
+                            } catch (e) {
+                                console.error('Error parsing SSE data:', e);
+                            }
+                        }
+                    }
+                }
+            } catch (error) {
+                showStatus(`Error: ${error.message}`, 'error');
+                document.getElementById('streamBtn').disabled = false;
+                document.getElementById('stopBtn').disabled = true;
+            }
+        }
+
+        function stopStreaming() {
+            if (currentReader) {
+                currentReader.cancel();
+                currentReader = null;
+            }
+            if (audioContext) {
+                audioChunks.forEach(chunk => {
+                    try {
+                        chunk.stop();
+                    } catch (e) {}
+                });
+                audioChunks = [];
+            }
+            document.getElementById('streamBtn').disabled = false;
+            document.getElementById('stopBtn').disabled = true;
+        }
+    </script>
+</body>
+</html>
+
