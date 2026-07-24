@@ -95,6 +95,12 @@ tts.save_audio(wav, "output.wav")
 # sf.write("output.wav", wav.squeeze(), 44100)
 
 print(f"Generated {duration[0]:.2f}s of audio")
+
+# Optional playback:
+# pip install sounddevice
+# import sounddevice as sd
+# sd.play(wav.squeeze().astype("float32"), 44100)
+# sd.wait()
 ```
 
 ### Local HTTP Server

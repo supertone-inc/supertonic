@@ -52,6 +52,27 @@ This will use:
 - Total steps: 8
 - Number of generations: 4
 
+### Optional: Play the generated audio
+
+The example writes `.wav` files into `results/`. To quickly play the most recent result from Python:
+
+```bash
+pip install sounddevice
+
+python - <<'PY'
+from pathlib import Path
+import sounddevice as sd
+import soundfile as sf
+
+wav_path = max(Path("results").glob("*.wav"), key=lambda path: path.stat().st_mtime)
+audio, sample_rate = sf.read(wav_path, dtype="float32")
+
+print(f"Playing {wav_path}")
+sd.play(audio, sample_rate)
+sd.wait()
+PY
+```
+
 ### Example 2: Batch Inference
 Process multiple voice styles and texts at once:
 ```bash
