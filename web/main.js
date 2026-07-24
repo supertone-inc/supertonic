@@ -1,8 +1,21 @@
+import * as ort from 'onnxruntime-web';
 import {
     loadTextToSpeech,
     loadVoiceStyle,
     writeWavFile
 } from './helper.js';
+
+// Configure ORT runtime once, before any session is created.
+// SIMD is always on in modern browsers; threads need cross-origin isolation
+// (see vite.config.js, which sets COOP/COEP headers in dev).
+const cpuThreads = (typeof navigator !== 'undefined' && navigator.hardwareConcurrency)
+    ? Math.min(navigator.hardwareConcurrency, 4)
+    : 1;
+const crossOriginIsolated = (typeof self !== 'undefined' && self.crossOriginIsolated) === true;
+ort.env.wasm.simd = true;
+ort.env.wasm.numThreads = crossOriginIsolated ? cpuThreads : 1;
+ort.env.wasm.proxy = false;
+ort.env.logLevel = 'warning';
 
 // Configuration
 const DEFAULT_VOICE_STYLE_PATH = 'assets/voice_styles/M1.json';
@@ -68,54 +81,53 @@ async function loadStyleFromJSON(stylePath) {
     }
 }
 
+// Detect WebGPU once so ORT can fall back to WASM per-op without re-downloading.
+async function detectWebGPU() {
+    if (typeof navigator === 'undefined' || !navigator.gpu) return false;
+    try {
+        const adapter = await navigator.gpu.requestAdapter();
+        return !!adapter;
+    } catch {
+        return false;
+    }
+}
+
 // Load models on page load
 async function initializeModels() {
     try {
         showStatus('ℹ️ <strong>Loading configuration...</strong>');
-        
+
         const basePath = 'assets/onnx';
-        
-        // Try WebGPU first, fallback to WASM
-        let executionProvider = 'wasm';
-        try {
-            const result = await loadTextToSpeech(basePath, {
-                executionProviders: ['webgpu'],
-                graphOptimizationLevel: 'all'
-            }, (modelName, current, total) => {
-                showStatus(`ℹ️ <strong>Loading ONNX models (${current}/${total}):</strong> ${modelName}...`);
-            });
-            
-            textToSpeech = result.textToSpeech;
-            cfgs = result.cfgs;
-            
-            executionProvider = 'webgpu';
+
+        const hasWebGPU = await detectWebGPU();
+        const executionProviders = hasWebGPU ? ['webgpu', 'wasm'] : ['wasm'];
+        const executionProvider = hasWebGPU ? 'webgpu' : 'wasm';
+
+        const result = await loadTextToSpeech(basePath, {
+            executionProviders,
+            graphOptimizationLevel: 'all'
+        }, (label, current, total) => {
+            showStatus(`ℹ️ <strong>Loading ONNX models (${current}/${total}):</strong> ${label}`);
+        });
+
+        textToSpeech = result.textToSpeech;
+        cfgs = result.cfgs;
+
+        if (hasWebGPU) {
             backendBadge.textContent = 'WebGPU';
             backendBadge.style.background = '#4caf50';
-        } catch (webgpuError) {
-            console.log('WebGPU not available, falling back to WebAssembly');
-            
-            const result = await loadTextToSpeech(basePath, {
-                executionProviders: ['wasm'],
-                graphOptimizationLevel: 'all'
-            }, (modelName, current, total) => {
-                showStatus(`ℹ️ <strong>Loading ONNX models (${current}/${total}):</strong> ${modelName}...`);
-            });
-            
-            textToSpeech = result.textToSpeech;
-            cfgs = result.cfgs;
         }
-        
+
         showStatus('ℹ️ <strong>Loading default voice style...</strong>');
-        
-        // Load default voice style
+
         currentStyle = await loadStyleFromJSON(currentStylePath);
         voiceStyleInfo.textContent = `${getFilenameFromPath(currentStylePath)} (default)`;
-        
+
         showStatus(`✅ <strong>Models loaded!</strong> Using ${executionProvider.toUpperCase()}. You can now generate speech.`, 'success');
         showBackendBadge();
-        
+
         generateBtn.disabled = false;
-        
+
     } catch (error) {
         console.error('Error loading models:', error);
         showStatus(`❌ <strong>Error loading models:</strong> ${error.message}`, 'error');

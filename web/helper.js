@@ -426,47 +426,94 @@ export async function loadTextProcessor(onnxDir) {
 }
 
 /**
- * Load ONNX model
+ * Load ONNX model with optional progress reporting.
+ *
+ * We fetch the bytes ourselves so we can show download progress and so the
+ * browser cache keeps a single copy regardless of the execution provider
+ * chosen by ORT (avoiding a 2x download on WebGPU->WASM fallback).
  */
-export async function loadOnnx(onnxPath, options) {
-    const session = await ort.InferenceSession.create(onnxPath, options);
-    return session;
+export async function loadOnnx(onnxPath, options, onBytes = null) {
+    const response = await fetch(onnxPath, { cache: 'force-cache' });
+    if (!response.ok) {
+        throw new Error(`Failed to fetch ${onnxPath}: ${response.status}`);
+    }
+
+    const totalHeader = response.headers.get('content-length');
+    const total = totalHeader ? parseInt(totalHeader, 10) : 0;
+
+    let buffer;
+    if (onBytes && response.body) {
+        const reader = response.body.getReader();
+        const chunks = [];
+        let received = 0;
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            chunks.push(value);
+            received += value.length;
+            onBytes(received, total);
+        }
+        const merged = new Uint8Array(received);
+        let offset = 0;
+        for (const chunk of chunks) {
+            merged.set(chunk, offset);
+            offset += chunk.length;
+        }
+        buffer = merged.buffer;
+    } else {
+        buffer = await response.arrayBuffer();
+    }
+
+    return await ort.InferenceSession.create(buffer, options);
 }
 
 /**
- * Load all TTS components
+ * Load all TTS components.
+ *
+ * Models are downloaded in parallel and ORT is given the full provider list,
+ * so on WebGPU failure it falls back internally without re-fetching weights.
  */
 export async function loadTextToSpeech(onnxDir, sessionOptions = {}, progressCallback = null) {
-    console.log('Using WebAssembly/WebGPU for inference');
-    
     const cfgs = await loadCfgs(onnxDir);
-    
-    const dpPath = `${onnxDir}/duration_predictor.onnx`;
-    const textEncPath = `${onnxDir}/text_encoder.onnx`;
-    const vectorEstPath = `${onnxDir}/vector_estimator.onnx`;
-    const vocoderPath = `${onnxDir}/vocoder.onnx`;
-    
+
     const modelPaths = [
-        { name: 'Duration Predictor', path: dpPath },
-        { name: 'Text Encoder', path: textEncPath },
-        { name: 'Vector Estimator', path: vectorEstPath },
-        { name: 'Vocoder', path: vocoderPath }
+        { name: 'Duration Predictor', path: `${onnxDir}/duration_predictor.onnx` },
+        { name: 'Text Encoder', path: `${onnxDir}/text_encoder.onnx` },
+        { name: 'Vector Estimator', path: `${onnxDir}/vector_estimator.onnx` },
+        { name: 'Vocoder', path: `${onnxDir}/vocoder.onnx` }
     ];
-    
-    const sessions = [];
-    for (let i = 0; i < modelPaths.length; i++) {
-        if (progressCallback) {
-            progressCallback(modelPaths[i].name, i + 1, modelPaths.length);
-        }
-        const session = await loadOnnx(modelPaths[i].path, sessionOptions);
-        sessions.push(session);
-    }
-    
+
+    const total = modelPaths.length;
+    let completed = 0;
+    const progress = new Array(total).fill({ received: 0, total: 0 });
+
+    const reportProgress = () => {
+        if (!progressCallback) return;
+        const totalBytes = progress.reduce((s, p) => s + (p.total || 0), 0);
+        const receivedBytes = progress.reduce((s, p) => s + p.received, 0);
+        const mb = (b) => (b / (1024 * 1024)).toFixed(1);
+        const label = totalBytes > 0
+            ? `${mb(receivedBytes)} / ${mb(totalBytes)} MB`
+            : `${mb(receivedBytes)} MB`;
+        progressCallback(label, completed, total);
+    };
+
+    const sessions = await Promise.all(modelPaths.map((m, i) =>
+        loadOnnx(m.path, sessionOptions, (received, t) => {
+            progress[i] = { received, total: t };
+            reportProgress();
+        }).then((session) => {
+            completed += 1;
+            reportProgress();
+            return session;
+        })
+    ));
+
     const [dpOrt, textEncOrt, vectorEstOrt, vocoderOrt] = sessions;
-    
+
     const textProcessor = await loadTextProcessor(onnxDir);
     const textToSpeech = new TextToSpeech(cfgs, textProcessor, dpOrt, textEncOrt, vectorEstOrt, vocoderOrt);
-    
+
     return { textToSpeech, cfgs };
 }
 
