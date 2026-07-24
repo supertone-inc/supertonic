@@ -86,6 +86,14 @@ batch = args.batch
 assert len(voice_style_paths) == len(
     text_list
 ), f"Number of voice styles ({len(voice_style_paths)}) must match number of texts ({len(text_list)})"
+
+# Validate and broadcast language list
+assert len(lang_list) == len(text_list) or len(lang_list) == 1, (
+    f"Number of languages ({len(lang_list)}) must match number of texts ({len(text_list)}) or be 1"
+)
+if len(lang_list) == 1:
+    lang_list = lang_list * len(text_list)
+
 bsz = len(voice_style_paths)
 
 # --- 2. Load Text to Speech --- #
@@ -108,8 +116,11 @@ for n in range(n_test):
             )
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
-    for b in range(bsz):
-        fname = f"{sanitize_filename(text_list[b], 20)}_{n+1}.wav"
+    # In non-batch mode, wav shape is (1, T) regardless of bsz
+    out_range = bsz if batch else 1
+    for b in range(out_range):
+        text_idx = b if batch else 0
+        fname = f"{sanitize_filename(text_list[text_idx], 20)}_{n+1}.wav"
         w = wav[b, : int(text_to_speech.sample_rate * duration[b].item())]  # [T_trim]
         sf.write(os.path.join(save_dir, fname), w, text_to_speech.sample_rate)
         print(f"Saved: {save_dir}/{fname}")
