@@ -78,7 +78,7 @@ tts = TTS(auto_download=True)
 
 style = tts.get_voice_style(voice_name="M1")
 
-text = "Supertonic is a lightning fast, on-device TTS system."
+text = "Supertonic is a lightning-fast, on-device TTS system."
 
 wav, duration = tts.synthesize(
     text=text,
