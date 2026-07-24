@@ -452,6 +452,7 @@ Supertonic is designed to handle complex, real-world text inputs that contain na
 | **Supertonic MNN** | Lightweight library based on MNN (fp32/fp16/int8) | [GitHub](https://github.com/vra/supertonic-mnn) · [PyPI](https://pypi.org/project/supertonic-mnn/) |
 | **Transformers.js** | Hugging Face's JS library with Supertonic support | [GitHub PR](https://github.com/huggingface/transformers.js/pull/1459) · [Demo](https://huggingface.co/spaces/webml-community/Supertonic-TTS-WebGPU) |
 | **Pinokio** | 1-click localhost cloud for Mac, Windows, and Linux | [Pinokio](https://pinokio.co/) · [GitHub](https://github.com/SUP3RMASS1VE/SuperTonic-TTS) |
+| **Listen2** | Offline iOS voice reader with one-time purchase | [App Store](https://apps.apple.com/us/app/listen-2-reader/id6755753624) |
 
 ## Models & Versions
 
