@@ -8,7 +8,10 @@
 #include <regex>
 #include <unordered_map>
 #include <nlohmann/json.hpp>
-
+#include <memory>
+#include <mutex>
+#include <string>
+#include <onnxruntime_cxx_api.h>
 using json = nlohmann::json;
 
 // Available languages for multilingual TTS
@@ -905,15 +908,32 @@ std::unique_ptr<TextToSpeech> loadTextToSpeech(
     const std::string& onnx_dir,
     bool use_gpu
 ) {
-    Ort::SessionOptions opts;
+    Ort::SessionOptions options;
     if (use_gpu) {
-        throw std::runtime_error("GPU mode is not supported yet");
+        std::cout << "Using GPU for inference" << std::endl;
+        options.SetIntraOpNumThreads(1);
+        options.SetInterOpNumThreads(1);
+        options.SetExecutionMode(ORT_SEQUENTIAL);
+        options.SetGraphOptimizationLevel(ORT_ENABLE_BASIC);
+        options.SetLogSeverityLevel(ORT_LOGGING_LEVEL_WARNING);
+        size_t gpu_mem_limit_mb = 2048;      //GPU Mem limit
+        OrtCUDAProviderOptions cuda_options{};
+        memset(&cuda_options, 0, sizeof(cuda_options));
+        cuda_options.device_id                 = 0;
+        cuda_options.cudnn_conv_algo_search    = OrtCudnnConvAlgoSearchHeuristic;
+        cuda_options.gpu_mem_limit             = static_cast<size_t>(gpu_mem_limit_mb) * 1024 * 1024;
+        cuda_options.arena_extend_strategy     = 0; // kSameAsRequested
+        cuda_options.do_copy_in_default_stream = 1;
+
+        options.AppendExecutionProvider_CUDA(cuda_options);
+        options.EnableCpuMemArena();
+        options.EnableMemPattern();
     } else {
         std::cout << "Using CPU for inference" << std::endl;
     }
     
     auto cfgs = loadCfgs(onnx_dir);
-    auto models = loadOnnxAll(env, onnx_dir, opts);
+    auto models = loadOnnxAll(env, onnx_dir, options);
     auto text_processor = loadTextProcessor(onnx_dir);
     
     // Transfer ownership to TextToSpeech (use raw pointers internally)

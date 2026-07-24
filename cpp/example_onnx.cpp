@@ -71,12 +71,17 @@ int main(int argc, char* argv[]) {
     int bsz = voice_style_paths.size();
     
     // --- 2. Load Text to Speech --- //
+    auto providers = Ort::GetAvailableProviders();
+    bool has_cuda = false | std::find(providers.begin(), providers.end(),
+                            "CUDAExecutionProvider") != providers.end();
+
+    std::cout << "CUDA available: " << std::boolalpha << has_cuda << std::endl;
     Ort::Env env(ORT_LOGGING_LEVEL_WARNING, "TTS");
     Ort::MemoryInfo memory_info = Ort::MemoryInfo::CreateCpu(
         OrtAllocatorType::OrtArenaAllocator, OrtMemType::OrtMemTypeDefault
     );
     
-    auto text_to_speech = loadTextToSpeech(env, args.onnx_dir, false);
+    auto text_to_speech = loadTextToSpeech(env, args.onnx_dir, has_cuda);
     std::cout << std::endl;
     
     // --- 3. Load Voice Style --- //
