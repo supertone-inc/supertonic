@@ -4,10 +4,10 @@ import PackageDescription
 let package = Package(
     name: "Supertonic",
     platforms: [
-        .macOS(.v13)
+        .iOS(.v15), .macOS(.v14)
     ],
     dependencies: [
-        .package(url: "https://github.com/microsoft/onnxruntime-swift-package-manager.git", from: "1.16.0"),
+        .package(url: "https://github.com/microsoft/onnxruntime-swift-package-manager.git", from: "1.24.2"),
     ],
     targets: [
         .executableTarget(
